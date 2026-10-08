@@ -1,0 +1,38 @@
+{
+  "_id": {
+    "$oid": "66f0a1000000000000000001"
+  },
+  "eventType": "stepFinished",
+  "buildRunId": {
+    "$numberLong": "2"
+  },
+  "runKey": "devhub-auth CI#2",
+  "pipelineName": "devhub-auth CI",
+  "runNumber": {
+    "$numberInt": "2"
+  },
+  "packageId": {
+    "$numberLong": "2"
+  },
+  "packageKey": "platform-team/devhub-auth",
+  "occurredAt": {
+    "$date": "2026-09-16T09:05:00Z"
+  },
+  "payload": {
+    "stepName": "Test",
+    "status": "Failed",
+    "exitCode": {
+      "$numberInt": "1"
+    },
+    "failedTests": [
+      "ClaimValidatorTests.RejectsExpiredToken"
+    ],
+    "durationSeconds": {
+      "$numberInt": "61"
+    }
+  },
+  "createdAt": {
+    "$date": "2026-09-16T09:05:01Z"
+  },
+  "createdBy": "cicd-sync"
+}

@@ -1,0 +1,43 @@
+{
+  "_id": {
+    "$oid": "66f0a2000000000000000001"
+  },
+  "kind": "unhandledException",
+  "packageVersionId": {
+    "$numberLong": "2"
+  },
+  "versionKey": "platform-team/devhub-auth@2.0.0",
+  "packageId": {
+    "$numberLong": "2"
+  },
+  "packageKey": "platform-team/devhub-auth",
+  "discussionId": {
+    "$oid": "66f0a3000000000000000001"
+  },
+  "occurredAt": {
+    "$date": "2026-09-13T22:41:00Z"
+  },
+  "expiresAt": {
+    "$date": "2027-09-13T22:41:00Z"
+  },
+  "fingerprint": "a1b2c3d4e5f60718",
+  "environment": "production",
+  "severity": "high",
+  "exception": {
+    "type": "System.Security.SecurityTokenExpiredException",
+    "message": "The token is expired."
+  },
+  "stackFrames": [
+    {
+      "method": "ClaimValidator.Validate",
+      "file": "ClaimValidator.cs",
+      "line": {
+        "$numberInt": "88"
+      }
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-09-13T22:41:05Z"
+  },
+  "createdBy": "telemetry-agent"
+}

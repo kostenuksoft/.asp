@@ -1,0 +1,68 @@
+{
+  "_id": {
+    "$oid": "66f0a3000000000000000001"
+  },
+  "packageId": {
+    "$numberLong": "2"
+  },
+  "packageKey": "platform-team/devhub-auth",
+  "packageName": "devhub-auth",
+  "publisherSlug": "platform-team",
+  "title": "Expired tokens throw instead of returning a validation result",
+  "category": "bug",
+  "state": "answered",
+  "labels": [
+    "regression",
+    "v2"
+  ],
+  "linkedBuildRunIds": [
+    {
+      "$numberLong": "2"
+    }
+  ],
+  "openedBy": "m.shevchenko",
+  "openedAt": {
+    "$date": "2026-09-12T10:00:00Z"
+  },
+  "commentCount": {
+    "$numberInt": "2"
+  },
+  "comments": [
+    {
+      "commentId": "c1",
+      "author": "m.shevchenko",
+      "body": "After upgrading to 2.0.0 an expired token throws.",
+      "postedAt": {
+        "$date": "2026-09-12T10:00:00Z"
+      },
+      "reactions": {
+        "+1": {
+          "$numberInt": "4"
+        }
+      },
+      "replies": [
+        {
+          "commentId": "c1r1",
+          "author": "o.kovalenko",
+          "body": "Reproduced.",
+          "postedAt": {
+            "$date": "2026-09-13T08:15:00Z"
+          }
+        }
+      ]
+    },
+    {
+      "commentId": "c2",
+      "author": "o.kovalenko",
+      "body": "Fixed in 2.1.0.",
+      "postedAt": {
+        "$date": "2026-09-14T16:40:00Z"
+      },
+      "replies": []
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-09-12T10:00:00Z"
+  },
+  "createdBy": "discussion-api"
+}

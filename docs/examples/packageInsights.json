@@ -1,0 +1,49 @@
+{
+  "_id": {
+    "$oid": "66f0a4000000000000000001"
+  },
+  "packageId": {
+    "$numberLong": "2"
+  },
+  "packageKey": "platform-team/devhub-auth",
+  "packageName": "devhub-auth",
+  "publisherSlug": "platform-team",
+  "windowStart": {
+    "$date": "2026-09-14T00:00:00Z"
+  },
+  "windowEnd": {
+    "$date": "2026-09-17T00:00:00Z"
+  },
+  "totals": {
+    "downloads": {
+      "$numberLong": "1420"
+    },
+    "crashes": {
+      "$numberInt": "1"
+    },
+    "openDiscussions": {
+      "$numberInt": "0"
+    }
+  },
+  "daily": [
+    {
+      "day": {
+        "$date": "2026-09-14T00:00:00Z"
+      },
+      "downloads": {
+        "$numberLong": "480"
+      },
+      "crashes": {
+        "$numberInt": "1"
+      },
+      "buildSuccessRate": 0.5
+    }
+  ],
+  "refreshedAt": {
+    "$date": "2026-09-17T00:05:00Z"
+  },
+  "createdAt": {
+    "$date": "2026-09-17T00:05:00Z"
+  },
+  "createdBy": "insights-job"
+}
