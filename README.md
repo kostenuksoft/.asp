@@ -223,6 +223,14 @@ AppHost створює контейнер SQL Server, у ньому базу `De
 `CicdDb` і `cicd-api`. API відповідає за адресою `https://localhost:7178`, опис усіх ендпоінтів –
 на `https://localhost:7178/swagger`.
 
+Так виглядають ресурси в Aspire Dashboard після запуску, усі три мають статус Running:
+
+![Aspire Dashboard: sql, CicdDb і cicd-api у статусі Running](docs/screenshots/aspire-dashboard.png)
+
+Перелік ендпоінтів API у Swagger:
+
+![Swagger: ендпоінти Cicd.Api](docs/screenshots/swagger.png)
+
 Рядок підключення `ConnectionStrings:CicdDb` API читає з `appsettings.json`; за замовчуванням він
 вказує на базу в LocalDB, розгорнуту за розділом «Розгортання». Aspire передає API рядок підключення до контейнера
 через змінну оточення `ConnectionStrings__CicdDb`, яка має пріоритет над файлом; так само можна
