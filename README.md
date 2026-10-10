@@ -169,6 +169,8 @@ SELECT * FROM sys.foreign_keys;
 доменні винятки лежать у `Cicd.Domain`, який бачать і DAL, і BLL. Це означає, що жоден SQL-запит
 не виходить за межі DAL. Контролери рішень не приймають.
 
+### Схема рішення
+
 ```mermaid
 flowchart LR
     AppHost[Platform.AppHost] --> Api[Cicd.Api]
@@ -213,9 +215,19 @@ dotnet user-secrets set "AutoMapper:LicenseKey" "<ключ з automapper.io>" --
 
 ### Запуск через Aspire
 
-```bash
-dotnet run --project Platform.AppHost
-```
+1. Запустіть Docker Desktop.
+2. Один раз зробіть довіреним сертифікат розробника: `dotnet dev-certs https --trust`.
+3. За потреби збережіть ключ AutoMapper у user secrets (команда вище).
+4. З кореня репозиторію запустіть AppHost:
+
+   ```bash
+   dotnet run --project Platform.AppHost
+   ```
+
+5. Відкрийте Aspire Dashboard за посиланням із консолі й дочекайтеся статусу Running для `sql`,
+   `CicdDb` і `cicd-api`.
+6. Відкрийте `https://localhost:7178/swagger` або виконайте запити з розділу «Приклади запитів
+   (curl)».
 
 AppHost створює контейнер SQL Server, у ньому базу `DevHub_Cicd` як ресурс `CicdDb` і заповнює її
 скриптами `db/p1/schema.sql`, `procedures.sql` та `seed.sql`; API стартує лише тоді, коли база
@@ -265,7 +277,7 @@ Id, ключ та назву пакета як знімок за політик�
 | `ValidationException` і порушені атрибути DataAnnotations на DTO | 400 |
 | будь-яка інша помилка | 500 |
 
-### Приклади запитів
+### Приклади запитів (curl)
 
 У свіжому контейнері `seed.sql` створює чотири запуски, тому перший новий запуск отримує Id 5.
 
