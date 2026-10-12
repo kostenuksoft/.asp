@@ -308,3 +308,151 @@ curl -i "$API/api/agents?status=Idle"
 Перший `POST` повертає 201 із заголовком `Location`, `start` захоплює вільного агента, перше
 `complete` – 200 із хронологією запуску та новим артефактом. Повторне `complete` того самого
 запуску дає 409. Запит на Id, якого немає, дає 404, а не 500.
+
+## Сервіс реєстру пакетів
+
+Проєкт №2 реалізовано як другий мікросервіс із тими самими трьома шарами, але доступ до даних
+побудовано на Entity Framework Core. Схему бази описують сутності з `Registry.Domain` і конфігурації
+Fluent API з `Registry.Dal/Configurations`, по одному класу на сутність; базу створює міграція.
+Назви таблиць, ключів, обмежень та індексів у міграції ті самі, що й у `db/p2/schema.sql`.
+
+| Проєкт | Вміст |
+| --- | --- |
+| `Registry.Api` | контролери, глобальний обробник помилок, `Program.cs`, `appsettings.json`, `Dockerfile` |
+| `Registry.Bll` | DTO, профілі AutoMapper, валідатори FluentValidation, специфікації, сервіси |
+| `Registry.Dal` | `RegistryDbContext`, конфігурації, міграції, репозиторії, Unit of Work, початкові дані |
+| `Registry.Domain` | сутності й доменні винятки |
+
+Таблиця `Package` отримала стовпець `LicensePrice` типу `decimal(18,2)` – ціну одного місця
+комерційної ліцензії. Нуль означає безкоштовний пакет. Стовпець додано і в `db/p2/schema.sql`.
+
+### Запуск і застосування міграцій
+
+Потрібні .NET SDK 9.0.318, SQL Server LocalDB та інструмент `dotnet-ef`
+(`dotnet tool install --global dotnet-ef`).
+
+1. Переконайтеся, що бази `DevHub_Registry` на сервері ще немає. Якщо її вже створено скриптами з
+   розділу «Розгортання», видаліть її або вкажіть іншу назву бази у змінній оточення
+   `ConnectionStrings__RegistryDb`: міграція створює таблиці з нуля й на готовій схемі зупиниться
+   з помилкою.
+2. Застосуйте міграції:
+
+   ```bash
+   dotnet ef database update --project Services/Registry/Registry.Dal --startup-project Services/Registry/Registry.Api
+   ```
+
+3. Запустіть API:
+
+   ```bash
+   dotnet run --project Services/Registry/Registry.Api --launch-profile https
+   ```
+
+4. Відкрийте `https://localhost:7179/swagger`.
+
+Крок 2 можна пропустити: під час старту API сам викликає `MigrateAsync()` і застосовує міграції,
+яких бракує. SQL-скрипт початкової міграції, згенерований командою `dotnet ef migrations script`,
+лежить у `Services/Registry/Registry.Dal/Migrations/InitialCreate.sql`. Нову міграцію додає команда:
+
+```bash
+dotnet ef migrations add <Назва> --project Services/Registry/Registry.Dal --startup-project Services/Registry/Registry.Api
+```
+
+### Початкові дані
+
+Довідники – три видавці й п’ять тегів – мають фіксовані Id і записані в міграцію через `HasData`.
+Пакети, версії, маніфести та зв’язки з тегами додає `DbInitializer` після міграцій, якщо таблиця
+пакетів порожня, тому повторний запуск нічого не дублює. У середовищі Production `DbInitializer`
+не викликається. Перші чотири пакети отримують ті самі Id, що й у `db/p2/seed.sql`, бо на них
+посилаються інші контексти.
+
+### Пагінація, фільтрація й сортування
+
+`GET /api/packages` приймає параметри `page` (з 1), `pageSize` (типово 20, не більше 100), `search`,
+`publisherId`, `minPrice`, `maxPrice`, `sortBy` (`name`, `price` або `downloads`) і `sortDir`
+(`asc` або `desc`). Метадані сторінки повертаються в тілі відповіді поруч з елементами: `items`,
+`totalCount`, `page`, `pageSize`, `totalPages`, `hasNext`, `hasPrevious`. Фільтр, сортування, `Skip`
+і `Take` описує специфікація `PackagesFilterSpec`, репозиторій застосовує її до `DbSet`, тож база
+повертає лише одну сторінку. Значення `totalCount` рахує окремий запит `COUNT` із тим самим
+фільтром.
+
+```bash
+API=https://localhost:7179
+
+curl -i "$API/api/packages?page=2&pageSize=5&sortBy=price&sortDir=desc"
+
+curl -i "$API/api/packages?search=devhub&minPrice=0&maxPrice=50"
+
+curl -i $API/api/packages/2
+
+curl -i -X POST $API/api/packages -H "Content-Type: application/json" \
+  -d '{"publisherId":1,"name":"devhub-cache","description":"Two-level cache helpers.","licensePrice":15.50}'
+
+curl -i -X POST $API/api/packages -H "Content-Type: application/json" \
+  -d '{"publisherId":1,"name":"devhub-cache","licensePrice":0}'
+
+curl -i $API/api/packages/999999
+
+curl -i "$API/api/tags/infrastructure/recent-packages?since=2026-08-01"
+```
+
+Перший `POST` повертає 201 із заголовком `Location`, другий із тією самою назвою – 409. Запит на Id,
+якого немає, дає 404 у форматі ProblemDetails.
+
+### Валідація й помилки
+
+Прості правила (обов’язковість, довжина, діапазон) задано атрибутами DataAnnotations на DTO,
+складніші – валідаторами FluentValidation: дозволені символи назви, адреса лише з `https://`, ціна
+з двома знаками після коми, список полів сортування. Валідатори зареєстровано через
+`AddValidatorsFromAssembly`, контролер викликає їх явно й повертає `ValidationProblemDetails`. Решту
+помилок перетворює один обробник `GlobalExceptionHandler`. Поле `detail` заповнюється лише в
+середовищі Development.
+
+| Ситуація | Статус |
+| --- | --- |
+| `EntityNotFoundException` – пакета, тега чи видавця немає | 404 |
+| `ValidationException`, порушені атрибути або правила валідатора | 400 |
+| `ConflictException` – пакет із такою назвою у видавця вже є, тег уже призначено | 409 |
+| `DomainException` – порушено правило сутності, наприклад завантаження прихованого пакета | 409 |
+| будь-яка інша помилка | 500 |
+
+### Логування
+
+Serilog читає рівні з розділу `Serilog` файла `appsettings.json` і пише в консоль. Кожен рядок має
+властивості `RequestId` і `RequestPath` з контексту запиту, а підсумковий рядок запиту – ще й
+`CorrelationId`. Команди EF Core логуються на рівні Information (категорія
+`Microsoft.EntityFrameworkCore.Database.Command`), тому в лозі видно кожен SQL-запит. Виняток
+записується один раз, в обробнику помилок. Рівень можна змінити без правки файла змінною оточення,
+наприклад `Serilog__MinimumLevel__Default=Warning`.
+
+Запит `GET /api/packages/2` завантажує пакет разом із видавцем, версіями, маніфестами й тегами через
+`Include` – це один SQL-запит. Запит `GET /api/tags/3` спершу читає тег, а пакети довантажує окремо
+через `Entry(...).Collection(...).LoadAsync()` – це два запити:
+
+```text
+[12:57:34 INF] 0HNP88NTIOIP9:00000001 /api/packages/2 Executed DbCommand (27ms) [Parameters=[@__packageId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+SELECT [s].[PackageId], [s].[CreatedAt], ...
+FROM (
+...
+[12:57:34 INF] 0HNP88NTIOIPA:00000001 /api/tags/3 Executed DbCommand (1ms) [Parameters=[@__tagId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+SELECT TOP(1) [t].[TagId], [t].[CreatedAt], ...
+FROM [registry].[Tag] AS [t]
+...
+[12:57:34 INF] 0HNP88NTIOIPA:00000001 /api/tags/3 Executed DbCommand (3ms) [Parameters=[@__p_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+SELECT [p].[PackageId], [p].[TagId], [p].[AssignedAt], ...
+FROM [registry].[PackageTag] AS [p]
+...
+```
+
+### Знімки екрана
+
+Перелік ендпоінтів API у Swagger:
+
+![Swagger: ендпоінти Registry.Api](docs/screenshots/registry-swagger.png)
+
+Відповідь із пагінацією на запит `page=2&pageSize=5`:
+
+![Swagger: друга сторінка пакетів із totalCount, totalPages, hasNext і hasPrevious](docs/screenshots/registry-paging.png)
+
+Відповідь 400 з помилками валідації по полях:
+
+![Swagger: відповідь 400 на створення пакета з порожньою назвою](docs/screenshots/registry-validation-400.png)
