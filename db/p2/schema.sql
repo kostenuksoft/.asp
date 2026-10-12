@@ -51,6 +51,7 @@ BEGIN
         Name            NVARCHAR(200)   NOT NULL,
         Description     NVARCHAR(2000)  NULL,
         ProjectUrl      NVARCHAR(400)   NULL,
+        LicensePrice    DECIMAL(18, 2)  NOT NULL CONSTRAINT DF_Package_LicensePrice DEFAULT (0),
         DownloadCount   BIGINT          NOT NULL CONSTRAINT DF_Package_DownloadCount DEFAULT (0),
         IsListed        BIT             NOT NULL CONSTRAINT DF_Package_IsListed DEFAULT (1),
         CreatedAt       DATETIME2(3)    NOT NULL CONSTRAINT DF_Package_CreatedAt DEFAULT (SYSUTCDATETIME()),
@@ -65,8 +66,17 @@ BEGIN
         CONSTRAINT UQ_Package_Publisher_Name UNIQUE (PublisherId, Name),
         CONSTRAINT CK_Package_Name_Format CHECK (LEN(Name) >= 2 AND Name NOT LIKE N'%[^a-zA-Z0-9._-]%'),
         CONSTRAINT CK_Package_DownloadCount_NonNegative CHECK (DownloadCount >= 0),
-        CONSTRAINT CK_Package_ProjectUrl_Scheme CHECK (ProjectUrl IS NULL OR ProjectUrl LIKE N'https://%')
+        CONSTRAINT CK_Package_ProjectUrl_Scheme CHECK (ProjectUrl IS NULL OR ProjectUrl LIKE N'https://%'),
+        CONSTRAINT CK_Package_LicensePrice_NonNegative CHECK (LicensePrice >= 0)
     );
+END;
+GO
+
+IF COL_LENGTH(N'registry.Package', N'LicensePrice') IS NULL
+BEGIN
+    ALTER TABLE registry.Package
+        ADD LicensePrice DECIMAL(18, 2) NOT NULL CONSTRAINT DF_Package_LicensePrice DEFAULT (0),
+            CONSTRAINT CK_Package_LicensePrice_NonNegative CHECK (LicensePrice >= 0);
 END;
 GO
 
@@ -253,6 +263,7 @@ VALUES
     ('TABLE', N'PackageTag',      'CONSTRAINT', N'FK_PackageTag_Package',                 N'M:N Package <-> Tag, package side.'),
     ('TABLE', N'PackageTag',      'CONSTRAINT', N'FK_PackageTag_Tag',                     N'M:N Package <-> Tag, tag side.'),
     ('TABLE', N'PackageTag',      'COLUMN',     N'AssignedAt',                            N'Own field of the M:N junction: when the tag was assigned to the package.'),
+    ('TABLE', N'Package',         'COLUMN',     N'LicensePrice',                          N'Price of one seat of a commercial licence; 0 means the package is free.'),
     ('TABLE', N'Package',         'INDEX',      N'IX_Package_PublisherId_Name',           N'Query: list one publisher''s listed packages by name; also resolves a packageKey to a package.'),
     ('TABLE', N'Package',         'INDEX',      N'IX_Package_DownloadCount',              N'Query: most downloaded listed packages, top-N.'),
     ('TABLE', N'PackageVersion',  'INDEX',      N'IX_PackageVersion_Package_PublishedAt', N'Query: version history of a package, newest published first.'),
