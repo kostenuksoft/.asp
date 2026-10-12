@@ -21,14 +21,16 @@ public sealed record RunTimelineDto(
     string RowVersion,
     IReadOnlyList<BuildStepDto> Steps,
     IReadOnlyList<RunStatusChangeDto> History,
-    IReadOnlyList<RunArtifactDto> Artifacts);
+    IReadOnlyList<RunArtifactDto> Artifacts
+);
 
 public sealed record RunStatusChangeDto(
     string? FromStatus,
     string ToStatus,
     string? Reason,
     DateTime CreatedAt,
-    string CreatedBy);
+    string CreatedBy
+);
 
 public sealed record RunArtifactDto(
     string UsageKind,
@@ -38,4 +40,5 @@ public sealed record RunArtifactDto(
     string PackageName,
     string SemVer,
     long SizeBytes,
-    string StorageUri);
+    string StorageUri
+);

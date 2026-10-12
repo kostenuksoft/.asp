@@ -12,14 +12,20 @@ public sealed class AgentService(IUnitOfWork unitOfWork, IMapper mapper) : IAgen
     private static readonly HashSet<string> s_statuses =
         [AgentStatus.Idle, AgentStatus.Leased, AgentStatus.Offline, AgentStatus.Draining];
 
-    public async Task<AgentDto> GetByIdAsync(long agentId, CancellationToken cancellationToken)
+    public async Task<AgentDto> GetByIdAsync(
+        long agentId,
+        CancellationToken cancellationToken
+    )
     {
         Agent agent = await unitOfWork.Agents.GetByIdAsync(agentId, cancellationToken)
             ?? throw new NotFoundException($"Agent {agentId} was not found.");
         return mapper.Map<AgentDto>(agent);
     }
 
-    public async Task<IReadOnlyList<AgentDto>> GetByStatusAsync(string status, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<AgentDto>> GetByStatusAsync(
+        string status,
+        CancellationToken cancellationToken
+    )
     {
         if (!s_statuses.Contains(status))
         {

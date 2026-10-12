@@ -5,21 +5,13 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public abstract class RepositoryBase
+public abstract class RepositoryBase(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
 {
     public const int CommandTimeoutSeconds = 30;
 
-    private readonly Func<SqlTransaction?> _currentTransaction;
+    protected SqlConnection Connection { get; } = connection;
 
-    protected RepositoryBase(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
-    {
-        Connection = connection;
-        _currentTransaction = currentTransaction;
-    }
-
-    protected SqlConnection Connection { get; }
-
-    protected SqlTransaction? Transaction => _currentTransaction();
+    protected SqlTransaction? Transaction => currentTransaction();
 
     protected async Task EnsureOpenAsync(CancellationToken cancellationToken)
     {

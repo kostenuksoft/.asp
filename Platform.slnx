@@ -7,5 +7,11 @@
     <Project Path="Services/Cicd/Cicd.Domain/Cicd.Domain.csproj" />
     <Project Path="Services/Cicd/Cicd.Tests/Cicd.Tests.csproj" />
   </Folder>
+  <Folder Name="/Services/Registry/">
+    <Project Path="Services/Registry/Registry.Api/Registry.Api.csproj" />
+    <Project Path="Services/Registry/Registry.Bll/Registry.Bll.csproj" />
+    <Project Path="Services/Registry/Registry.Dal/Registry.Dal.csproj" />
+    <Project Path="Services/Registry/Registry.Domain/Registry.Domain.csproj" />
+  </Folder>
   <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
 </Solution>

@@ -7,7 +7,10 @@ public sealed class BusinessConflictException : DomainException
     {
     }
 
-    public BusinessConflictException(string message, Exception innerException)
+    public BusinessConflictException(
+        string message,
+        Exception innerException
+    )
         : base(message, innerException)
     {
     }

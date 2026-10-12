@@ -7,4 +7,5 @@ public sealed record PipelineDto(
     string DefaultBranch,
     long? PackageId,
     string? PackageKey,
-    bool IsEnabled);
+    bool IsEnabled
+);

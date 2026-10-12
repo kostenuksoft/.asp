@@ -12,7 +12,8 @@ public sealed record BuildRunDto(
     int? DurationSeconds,
     string RowVersion,
     BuildRunDetailDto? Detail,
-    IReadOnlyList<BuildStepDto> Steps);
+    IReadOnlyList<BuildStepDto> Steps
+);
 
 public sealed record BuildRunDetailDto(
     string CommitSha,
@@ -20,7 +21,8 @@ public sealed record BuildRunDetailDto(
     string BranchName,
     string TriggeredBy,
     string TriggerKind,
-    string? TriggerPayload);
+    string? TriggerPayload
+);
 
 public sealed record BuildStepDto(
     long BuildStepId,
@@ -29,4 +31,5 @@ public sealed record BuildStepDto(
     string Status,
     DateTime? StartedAt,
     DateTime? FinishedAt,
-    int? ExitCode);
+    int? ExitCode
+);

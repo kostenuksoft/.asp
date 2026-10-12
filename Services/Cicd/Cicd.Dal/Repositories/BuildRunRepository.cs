@@ -6,7 +6,8 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class BuildRunRepository : BaseDapperRepository<BuildRun>, IBuildRunRepository
+public sealed class BuildRunRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+    : BaseDapperRepository<BuildRun>(connection, currentTransaction, "cicd.BuildRun", "BuildRunId"), IBuildRunRepository
 {
     private const string RunWithDetailAndStepsSql =
         "SELECT r.BuildRunId, r.PipelineId, r.AgentId, r.RunNumber, r.Status, r.QueuedAt, r.StartedAt, r.FinishedAt, " +
@@ -19,17 +20,15 @@ public sealed class BuildRunRepository : BaseDapperRepository<BuildRun>, IBuildR
         "WHERE r.BuildRunId = @BuildRunId AND r.IsDeleted = 0 " +
         "ORDER BY s.StepOrder;";
 
-    public BuildRunRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
-        : base(connection, currentTransaction, "cicd.BuildRun", "BuildRunId")
-    {
-    }
-
     protected override string InsertSql =>
         "INSERT INTO cicd.BuildRun (PipelineId, RunNumber, Status, CreatedBy) " +
         "OUTPUT INSERTED.BuildRunId " +
         "VALUES (@PipelineId, @RunNumber, @Status, @CreatedBy);";
 
-    public async Task<BuildRun?> GetWithDetailAndStepsAsync(long buildRunId, CancellationToken cancellationToken = default)
+    public async Task<BuildRun?> GetWithDetailAndStepsAsync(
+        long buildRunId,
+        CancellationToken cancellationToken = default
+    )
     {
         BuildRun? result = null;
 
@@ -46,39 +45,51 @@ public sealed class BuildRunRepository : BaseDapperRepository<BuildRun>, IBuildR
 
                 return result;
             },
-            splitOn: "BuildRunId,BuildStepId");
+            splitOn: "BuildRunId,BuildStepId"
+        );
 
         return result;
     }
 
-    public async Task<IReadOnlyList<BuildRun>> GetByPipelineAsync(long pipelineId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BuildRun>> GetByPipelineAsync(
+        long pipelineId,
+        CancellationToken cancellationToken = default
+    )
     {
         IEnumerable<BuildRun> rows = await Connection.QueryAsync<BuildRun>(Command(
             "SELECT * FROM cicd.BuildRun WHERE PipelineId = @PipelineId AND IsDeleted = 0 ORDER BY QueuedAt DESC;",
             new { PipelineId = pipelineId },
-            cancellationToken));
+            cancellationToken
+        ));
         return rows.AsList();
     }
 
-    public Task<RunTimeline?> GetTimelineAsync(long buildRunId, CancellationToken cancellationToken = default)
-        => TranslateErrorsAsync(async () =>
+    public Task<RunTimeline?> GetTimelineAsync(
+        long buildRunId,
+        CancellationToken cancellationToken = default
+    ) => TranslateErrorsAsync(async () =>
+    {
+        using SqlMapper.GridReader grid = await Connection.QueryMultipleAsync(
+            Procedure("cicd.usp_GetRunTimeline", new { BuildRunId = buildRunId }, cancellationToken)
+        );
+
+        RunTimeline? timeline = await grid.ReadSingleOrDefaultAsync<RunTimeline>();
+        if (timeline is null)
         {
-            using SqlMapper.GridReader grid = await Connection.QueryMultipleAsync(
-                Procedure("cicd.usp_GetRunTimeline", new { BuildRunId = buildRunId }, cancellationToken));
+            return null;
+        }
 
-            RunTimeline? timeline = await grid.ReadSingleOrDefaultAsync<RunTimeline>();
-            if (timeline is null)
-            {
-                return null;
-            }
+        timeline.Steps = (await grid.ReadAsync<BuildStep>()).AsList();
+        timeline.History = (await grid.ReadAsync<RunStatusChange>()).AsList();
+        timeline.Artifacts = (await grid.ReadAsync<RunArtifact>()).AsList();
+        return timeline;
+    });
 
-            timeline.Steps = (await grid.ReadAsync<BuildStep>()).AsList();
-            timeline.History = (await grid.ReadAsync<RunStatusChange>()).AsList();
-            timeline.Artifacts = (await grid.ReadAsync<RunArtifact>()).AsList();
-            return timeline;
-        });
-
-    public Task<long> QueueAsync(BuildRun run, BuildRunDetail detail, CancellationToken cancellationToken = default)
+    public Task<long> QueueAsync(
+        BuildRun run,
+        BuildRunDetail detail,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(detail);
@@ -106,7 +117,8 @@ public sealed class BuildRunRepository : BaseDapperRepository<BuildRun>, IBuildR
         string? reason,
         string changedBy,
         byte[]? expectedRowVersion,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         DynamicParameters parameters = new();
         parameters.Add("@BuildRunId", buildRunId, DbType.Int64);
@@ -116,16 +128,20 @@ public sealed class BuildRunRepository : BaseDapperRepository<BuildRun>, IBuildR
         parameters.Add("@ExpectedRowVersion", expectedRowVersion, DbType.Binary, size: 8);
 
         return TranslateErrorsAsync(() => Connection.ExecuteAsync(
-            Procedure("cicd.usp_TransitionRunStatus", parameters, cancellationToken)));
+            Procedure("cicd.usp_TransitionRunStatus", parameters, cancellationToken)
+        ));
     }
 
-    public override Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default)
-        => TranslateErrorsAsync(async () =>
-        {
-            await Connection.ExecuteAsync(Procedure(
-                "cicd.usp_DeleteBuildRun",
-                new { BuildRunId = id, DeletedBy = "api" },
-                cancellationToken));
-            return true;
-        });
+    public override Task<bool> DeleteAsync(
+        long id,
+        CancellationToken cancellationToken = default
+    ) => TranslateErrorsAsync(async () =>
+    {
+        await Connection.ExecuteAsync(Procedure(
+            "cicd.usp_DeleteBuildRun",
+            new { BuildRunId = id, DeletedBy = "api" },
+            cancellationToken
+        ));
+        return true;
+    });
 }

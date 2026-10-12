@@ -12,7 +12,8 @@ public sealed class MappingConfigurationTests
     {
         MapperConfiguration configuration = new(
             expression => expression.AddMaps(typeof(BuildRunProfile).Assembly),
-            NullLoggerFactory.Instance);
+            NullLoggerFactory.Instance
+        );
 
         configuration.AssertConfigurationIsValid();
     }

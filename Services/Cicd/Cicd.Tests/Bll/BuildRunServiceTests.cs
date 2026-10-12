@@ -18,7 +18,8 @@ public sealed class BuildRunServiceTests
 
     private static readonly IMapper s_mapper = new MapperConfiguration(
         expression => expression.AddMaps(typeof(BuildRunProfile).Assembly),
-        NullLoggerFactory.Instance).CreateMapper();
+        NullLoggerFactory.Instance
+    ).CreateMapper();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -29,7 +30,8 @@ public sealed class BuildRunServiceTests
         BuildRunService service = new(uow, s_mapper, NullLogger<BuildRunService>.Instance);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            service.CompleteAsync(999_999_999, NewCompletion("1111111111111111111111111111111111111111111111111111111111111111"), Token));
+            service.CompleteAsync(999_999_999, NewCompletion("1111111111111111111111111111111111111111111111111111111111111111"), Token)
+        );
     }
 
     [Fact]
@@ -45,7 +47,8 @@ public sealed class BuildRunServiceTests
             {
                 BuildRunService service = new(uow, s_mapper, NullLogger<BuildRunService>.Instance);
                 await Assert.ThrowsAsync<BusinessConflictException>(() =>
-                    service.CompleteAsync(runId, NewCompletion(ExistingSha256), Token));
+                    service.CompleteAsync(runId, NewCompletion(ExistingSha256), Token)
+                );
             }
 
             BuildRun after = await ReadRunAsync(runId);
@@ -88,7 +91,8 @@ public sealed class BuildRunServiceTests
                 TriggeredBy = "tests",
                 TriggerKind = "Manual",
             },
-            Token);
+            Token
+        );
         long? agentId = await uow.Agents.LeaseAsync(runId, "Windows", "tests", Token);
         Assert.NotNull(agentId);
         return runId;
@@ -117,7 +121,8 @@ public sealed class BuildRunServiceTests
             "UPDATE cicd.Agent SET Status = 'Idle', UpdatedAt = NULL, UpdatedBy = NULL " +
             "WHERE AgentId = (SELECT AgentId FROM cicd.BuildRun WHERE BuildRunId = @BuildRunId); " +
             "DELETE FROM cicd.BuildRun WHERE BuildRunId = @BuildRunId;",
-            connection);
+            connection
+        );
         command.Parameters.Add("@BuildRunId", System.Data.SqlDbType.BigInt).Value = runId;
         await command.ExecuteNonQueryAsync(CancellationToken.None);
     }
