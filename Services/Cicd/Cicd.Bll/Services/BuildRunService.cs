@@ -12,14 +12,20 @@ namespace Cicd.Bll.Services;
 
 public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<BuildRunService> logger) : IBuildRunService
 {
-    public async Task<BuildRunDto> GetByIdAsync(long buildRunId, CancellationToken cancellationToken)
+    public async Task<BuildRunDto> GetByIdAsync(
+        long buildRunId,
+        CancellationToken cancellationToken
+    )
     {
         BuildRun run = await unitOfWork.BuildRuns.GetWithDetailAndStepsAsync(buildRunId, cancellationToken)
             ?? throw new NotFoundException($"Build run {buildRunId} was not found.");
         return mapper.Map<BuildRunDto>(run);
     }
 
-    public async Task<IReadOnlyList<BuildRunDto>> GetByPipelineAsync(long pipelineId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<BuildRunDto>> GetByPipelineAsync(
+        long pipelineId,
+        CancellationToken cancellationToken
+    )
     {
         _ = await unitOfWork.Pipelines.GetByIdAsync(pipelineId, cancellationToken)
             ?? throw new NotFoundException($"Pipeline {pipelineId} was not found.");
@@ -28,14 +34,20 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
         return mapper.Map<IReadOnlyList<BuildRunDto>>(runs);
     }
 
-    public async Task<RunTimelineDto> GetTimelineAsync(long buildRunId, CancellationToken cancellationToken)
+    public async Task<RunTimelineDto> GetTimelineAsync(
+        long buildRunId,
+        CancellationToken cancellationToken
+    )
     {
         RunTimeline timeline = await unitOfWork.BuildRuns.GetTimelineAsync(buildRunId, cancellationToken)
             ?? throw new NotFoundException($"Build run {buildRunId} was not found.");
         return mapper.Map<RunTimelineDto>(timeline);
     }
 
-    public async Task<BuildRunDto> QueueAsync(QueueBuildRunDto input, CancellationToken cancellationToken)
+    public async Task<BuildRunDto> QueueAsync(
+        QueueBuildRunDto input,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(input);
 
@@ -65,7 +77,11 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
         return await GetByIdAsync(buildRunId, cancellationToken);
     }
 
-    public async Task<BuildRunDto> StartAsync(long buildRunId, StartBuildRunDto input, CancellationToken cancellationToken)
+    public async Task<BuildRunDto> StartAsync(
+        long buildRunId,
+        StartBuildRunDto input,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(input);
 
@@ -85,7 +101,11 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
         return await GetByIdAsync(buildRunId, cancellationToken);
     }
 
-    public async Task TransitionAsync(long buildRunId, TransitionBuildRunDto input, CancellationToken cancellationToken)
+    public async Task TransitionAsync(
+        long buildRunId,
+        TransitionBuildRunDto input,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(input);
 
@@ -96,10 +116,15 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
             input.Reason,
             input.ChangedBy,
             expectedRowVersion,
-            cancellationToken);
+            cancellationToken
+        );
     }
 
-    public async Task<RunTimelineDto> CompleteAsync(long buildRunId, CompleteBuildRunDto input, CancellationToken cancellationToken)
+    public async Task<RunTimelineDto> CompleteAsync(
+        long buildRunId,
+        CompleteBuildRunDto input,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(input);
 
@@ -129,7 +154,8 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
                 $"Completed with {input.Artifacts.Count} artefact(s)",
                 input.CompletedBy,
                 run.RowVersion,
-                cancellationToken);
+                cancellationToken
+            );
 
             foreach (ProducedArtifactDto produced in input.Artifacts)
             {
@@ -155,7 +181,8 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
                         UsageKind = ArtifactUsageKind.Produced,
                         CreatedBy = input.CompletedBy,
                     },
-                    cancellationToken);
+                    cancellationToken
+                );
             }
 
             await unitOfWork.CommitAsync(cancellationToken);
@@ -174,8 +201,10 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
         return await GetTimelineAsync(buildRunId, cancellationToken);
     }
 
-    public Task DeleteAsync(long buildRunId, CancellationToken cancellationToken)
-        => unitOfWork.BuildRuns.DeleteAsync(buildRunId, cancellationToken);
+    public Task DeleteAsync(
+        long buildRunId,
+        CancellationToken cancellationToken
+    ) => unitOfWork.BuildRuns.DeleteAsync(buildRunId, cancellationToken);
 
     private static byte[]? DecodeRowVersion(string? rowVersion)
     {

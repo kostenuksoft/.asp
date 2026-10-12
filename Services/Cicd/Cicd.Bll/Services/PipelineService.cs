@@ -15,14 +15,20 @@ public sealed class PipelineService(IUnitOfWork unitOfWork, IMapper mapper) : IP
         return mapper.Map<IReadOnlyList<PipelineDto>>(pipelines);
     }
 
-    public async Task<PipelineDto> GetByIdAsync(long pipelineId, CancellationToken cancellationToken)
+    public async Task<PipelineDto> GetByIdAsync(
+        long pipelineId,
+        CancellationToken cancellationToken
+    )
     {
         Pipeline pipeline = await unitOfWork.Pipelines.GetByIdAsync(pipelineId, cancellationToken)
             ?? throw new NotFoundException($"Pipeline {pipelineId} was not found.");
         return mapper.Map<PipelineDto>(pipeline);
     }
 
-    public async Task<PipelineDto> CreateAsync(CreatePipelineDto input, CancellationToken cancellationToken)
+    public async Task<PipelineDto> CreateAsync(
+        CreatePipelineDto input,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(input);
 
@@ -46,7 +52,10 @@ public sealed class PipelineService(IUnitOfWork unitOfWork, IMapper mapper) : IP
         return await GetByIdAsync(pipelineId, cancellationToken);
     }
 
-    public async Task DeleteAsync(long pipelineId, CancellationToken cancellationToken)
+    public async Task DeleteAsync(
+        long pipelineId,
+        CancellationToken cancellationToken
+    )
     {
         if (!await unitOfWork.Pipelines.DeleteAsync(pipelineId, cancellationToken))
         {

@@ -29,7 +29,8 @@ public sealed class UnitOfWork : IUnitOfWork
 
     public async Task BeginTransactionAsync(
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         if (_transaction is not null)
         {

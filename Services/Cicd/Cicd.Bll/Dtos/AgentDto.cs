@@ -5,4 +5,5 @@ public sealed record AgentDto(
     string Hostname,
     string OperatingSystem,
     string Status,
-    DateTime? LastHeartbeatAt);
+    DateTime? LastHeartbeatAt
+);

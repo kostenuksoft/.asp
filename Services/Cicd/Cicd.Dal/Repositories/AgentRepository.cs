@@ -5,35 +5,39 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class AgentRepository : RepositoryBase, IAgentRepository
+public sealed class AgentRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+    : RepositoryBase(connection, currentTransaction), IAgentRepository
 {
     private const string SelectColumns =
         "SELECT AgentId, Hostname, OperatingSystem, Status, LastHeartbeatAt, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted " +
         "FROM cicd.Agent ";
 
-    public AgentRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
-        : base(connection, currentTransaction)
+    public async Task<Agent?> GetByIdAsync(
+        long agentId,
+        CancellationToken cancellationToken = default
+    )
     {
-    }
-
-    public async Task<Agent?> GetByIdAsync(long agentId, CancellationToken cancellationToken = default)
-    {
-        const string sql = SelectColumns + "WHERE AgentId = @AgentId AND IsDeleted = 0;";
+        const string Sql = SelectColumns + "WHERE AgentId = @AgentId AND IsDeleted = 0;";
 
         await EnsureOpenAsync(cancellationToken);
-        await using SqlCommand command = new(sql, Connection, Transaction) { CommandTimeout = CommandTimeoutSeconds };
+        await using SqlCommand command = new(Sql, Connection, Transaction);
+        command.CommandTimeout = CommandTimeoutSeconds;
         command.Parameters.Add("@AgentId", SqlDbType.BigInt).Value = agentId;
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         return await reader.ReadAsync(cancellationToken) ? Map(reader) : null;
     }
 
-    public async Task<IReadOnlyList<Agent>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Agent>> GetByStatusAsync(
+        string status,
+        CancellationToken cancellationToken = default
+    )
     {
-        const string sql = SelectColumns + "WHERE Status = @Status AND IsDeleted = 0 ORDER BY Hostname;";
+        const string Sql = SelectColumns + "WHERE Status = @Status AND IsDeleted = 0 ORDER BY Hostname;";
 
         await EnsureOpenAsync(cancellationToken);
-        await using SqlCommand command = new(sql, Connection, Transaction) { CommandTimeout = CommandTimeoutSeconds };
+        await using SqlCommand command = new(Sql, Connection, Transaction);
+        command.CommandTimeout = CommandTimeoutSeconds;
         command.Parameters.Add("@Status", SqlDbType.VarChar, 20).Value = status;
 
         List<Agent> agents = [];
@@ -46,24 +50,26 @@ public sealed class AgentRepository : RepositoryBase, IAgentRepository
         return agents;
     }
 
-    public Task<long?> LeaseAsync(long buildRunId, string operatingSystem, string leasedBy, CancellationToken cancellationToken = default)
-        => TranslateErrorsAsync(async () =>
-        {
-            await EnsureOpenAsync(cancellationToken);
-            await using SqlCommand command = new("cicd.usp_LeaseAgent", Connection, Transaction)
-            {
-                CommandType = CommandType.StoredProcedure,
-                CommandTimeout = CommandTimeoutSeconds,
-            };
-            command.Parameters.Add("@BuildRunId", SqlDbType.BigInt).Value = buildRunId;
-            command.Parameters.Add("@OperatingSystem", SqlDbType.NVarChar, 50).Value = operatingSystem;
-            command.Parameters.Add("@LeasedBy", SqlDbType.NVarChar, 128).Value = leasedBy;
-            SqlParameter agentId = command.Parameters.Add("@AgentId", SqlDbType.BigInt);
-            agentId.Direction = ParameterDirection.Output;
+    public Task<long?> LeaseAsync(
+        long buildRunId,
+        string operatingSystem,
+        string leasedBy,
+        CancellationToken cancellationToken = default
+    ) => TranslateErrorsAsync(async () =>
+    {
+        await EnsureOpenAsync(cancellationToken);
+        await using SqlCommand command = new("cicd.usp_LeaseAgent", Connection, Transaction);
+        command.CommandType = CommandType.StoredProcedure;
+        command.CommandTimeout = CommandTimeoutSeconds;
+        command.Parameters.Add("@BuildRunId", SqlDbType.BigInt).Value = buildRunId;
+        command.Parameters.Add("@OperatingSystem", SqlDbType.NVarChar, 50).Value = operatingSystem;
+        command.Parameters.Add("@LeasedBy", SqlDbType.NVarChar, 128).Value = leasedBy;
+        SqlParameter agentId = command.Parameters.Add("@AgentId", SqlDbType.BigInt);
+        agentId.Direction = ParameterDirection.Output;
 
-            await command.ExecuteNonQueryAsync(cancellationToken);
-            return agentId.Value is DBNull ? (long?)null : (long)agentId.Value;
-        });
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        return agentId.Value is DBNull ? (long?)null : (long)agentId.Value;
+    });
 
     private static Agent Map(SqlDataReader reader) => new()
     {

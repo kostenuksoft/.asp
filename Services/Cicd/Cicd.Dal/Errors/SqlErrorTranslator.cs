@@ -9,7 +9,10 @@ public static class SqlErrorTranslator
     private static readonly HashSet<int> s_conflict = [50002, 50011, 50021, 50022, 50031, 50051, 50052, 2601, 2627];
     private static readonly HashSet<int> s_invalid = [547, 515, 8152, 2628];
 
-    public static bool TryTranslate(SqlException exception, out DomainException translated)
+    public static bool TryTranslate(
+        SqlException exception,
+        out DomainException translated
+    )
     {
         ArgumentNullException.ThrowIfNull(exception);
 

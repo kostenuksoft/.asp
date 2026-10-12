@@ -4,5 +4,8 @@ namespace Cicd.Dal.Repositories.Interfaces;
 
 public interface IPipelineRepository : IGenericRepository<Pipeline>
 {
-    Task<Pipeline?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<Pipeline?> GetByNameAsync(
+        string name,
+        CancellationToken cancellationToken = default
+    );
 }

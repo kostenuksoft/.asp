@@ -7,7 +7,10 @@ public sealed class NotFoundException : DomainException
     {
     }
 
-    public NotFoundException(string message, Exception innerException)
+    public NotFoundException(
+        string message,
+        Exception innerException
+    )
         : base(message, innerException)
     {
     }
