@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Cicd.Dal\Cicd.Dal.csproj" />
+    <ProjectReference Include="..\Cicd.Domain\Cicd.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" />
+  </ItemGroup>
+</Project>

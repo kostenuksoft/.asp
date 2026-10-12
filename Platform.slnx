@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/Cicd/">
+    <Project Path="Services/Cicd/Cicd.Api/Cicd.Api.csproj" />
+    <Project Path="Services/Cicd/Cicd.Bll/Cicd.Bll.csproj" />
+    <Project Path="Services/Cicd/Cicd.Dal/Cicd.Dal.csproj" />
+    <Project Path="Services/Cicd/Cicd.Domain/Cicd.Domain.csproj" />
+    <Project Path="Services/Cicd/Cicd.Tests/Cicd.Tests.csproj" />
+  </Folder>
+  <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
+</Solution>
