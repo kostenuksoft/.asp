@@ -5,7 +5,8 @@ string cicdCreationScript = string.Join(
     Environment.NewLine,
     File.ReadAllText(Path.Combine(cicdScripts, "schema.sql")),
     File.ReadAllText(Path.Combine(cicdScripts, "procedures.sql")),
-    File.ReadAllText(Path.Combine(cicdScripts, "seed.sql")));
+    File.ReadAllText(Path.Combine(cicdScripts, "seed.sql"))
+);
 
 IResourceBuilder<SqlServerServerResource> sql = builder.AddSqlServer("sql");
 

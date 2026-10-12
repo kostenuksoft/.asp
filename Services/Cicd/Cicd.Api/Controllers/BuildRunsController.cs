@@ -12,21 +12,28 @@ public sealed class BuildRunsController(IBuildRunService buildRuns) : Controller
     [HttpGet("{id:long}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BuildRunDto>> GetById(long id, CancellationToken cancellationToken)
-        => Ok(await buildRuns.GetByIdAsync(id, cancellationToken));
+    public async Task<ActionResult<BuildRunDto>> GetById(
+        long id,
+        CancellationToken cancellationToken
+    ) => Ok(await buildRuns.GetByIdAsync(id, cancellationToken));
 
     [HttpGet("{id:long}/timeline")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<RunTimelineDto>> GetTimeline(long id, CancellationToken cancellationToken)
-        => Ok(await buildRuns.GetTimelineAsync(id, cancellationToken));
+    public async Task<ActionResult<RunTimelineDto>> GetTimeline(
+        long id,
+        CancellationToken cancellationToken
+    ) => Ok(await buildRuns.GetTimelineAsync(id, cancellationToken));
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<BuildRunDto>> Queue(QueueBuildRunDto input, CancellationToken cancellationToken)
+    public async Task<ActionResult<BuildRunDto>> Queue(
+        QueueBuildRunDto input,
+        CancellationToken cancellationToken
+    )
     {
         BuildRunDto queued = await buildRuns.QueueAsync(input, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = queued.BuildRunId }, queued);
@@ -37,15 +44,22 @@ public sealed class BuildRunsController(IBuildRunService buildRuns) : Controller
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<BuildRunDto>> Start(long id, StartBuildRunDto input, CancellationToken cancellationToken)
-        => Ok(await buildRuns.StartAsync(id, input, cancellationToken));
+    public async Task<ActionResult<BuildRunDto>> Start(
+        long id,
+        StartBuildRunDto input,
+        CancellationToken cancellationToken
+    ) => Ok(await buildRuns.StartAsync(id, input, cancellationToken));
 
     [HttpPost("{id:long}/transition")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Transition(long id, TransitionBuildRunDto input, CancellationToken cancellationToken)
+    public async Task<IActionResult> Transition(
+        long id,
+        TransitionBuildRunDto input,
+        CancellationToken cancellationToken
+    )
     {
         await buildRuns.TransitionAsync(id, input, cancellationToken);
         return NoContent();
@@ -56,14 +70,20 @@ public sealed class BuildRunsController(IBuildRunService buildRuns) : Controller
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<RunTimelineDto>> Complete(long id, CompleteBuildRunDto input, CancellationToken cancellationToken)
-        => Ok(await buildRuns.CompleteAsync(id, input, cancellationToken));
+    public async Task<ActionResult<RunTimelineDto>> Complete(
+        long id,
+        CompleteBuildRunDto input,
+        CancellationToken cancellationToken
+    ) => Ok(await buildRuns.CompleteAsync(id, input, cancellationToken));
 
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(
+        long id,
+        CancellationToken cancellationToken
+    )
     {
         await buildRuns.DeleteAsync(id, cancellationToken);
         return NoContent();

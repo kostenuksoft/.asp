@@ -56,7 +56,8 @@ public sealed class UnitOfWorkTests
         long runId = await uow.BuildRuns.QueueAsync(
             new BuildRun { PipelineId = 1 },
             NewDetail("O'Brien", "Fix O'Brien's 'quoted' path"),
-            Token);
+            Token
+        );
         BuildRun? stored = await uow.BuildRuns.GetWithDetailAndStepsAsync(runId, Token);
 
         await uow.RollbackAsync(Token);
@@ -101,7 +102,8 @@ public sealed class UnitOfWorkTests
         long runId = await uow.BuildRuns.QueueAsync(new BuildRun { PipelineId = 1 }, NewDetail("tests", "illegal move"), Token);
 
         await Assert.ThrowsAsync<BusinessConflictException>(() =>
-            uow.BuildRuns.TransitionStatusAsync(runId, BuildRunStatus.Succeeded, null, "tests", null, Token));
+            uow.BuildRuns.TransitionStatusAsync(runId, BuildRunStatus.Succeeded, null, "tests", null, Token)
+        );
         await uow.RollbackAsync(Token);
 
         Assert.Null(await uow.BuildRuns.GetByIdAsync(runId, Token));
@@ -127,7 +129,10 @@ public sealed class UnitOfWorkTests
         Assert.Equal(BuildRunStatus.Running, run?.Status);
     }
 
-    private static BuildRunDetail NewDetail(string triggeredBy, string message) => new()
+    private static BuildRunDetail NewDetail(
+        string triggeredBy,
+        string message
+    ) => new()
     {
         CommitSha = "0123456789abcdef0123456789abcdef01234567",
         CommitMessage = message,
