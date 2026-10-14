@@ -96,7 +96,9 @@ const collections = [
                 checkName: { bsonType: "string" },
                 context: { bsonType: "object" },
                 createdAt: { bsonType: "date" },
-                createdBy: { bsonType: "string", maxLength: 128 }
+                createdBy: { bsonType: "string", maxLength: 128 },
+                updatedAt: { bsonType: "date", description: "Time of the last change made through the Telemetry service." },
+                version: { bsonType: "int", minimum: 0, description: "Optimistic concurrency: raised by every update, which succeeds only at the expected version." }
             },
             additionalProperties: false
         }
@@ -148,7 +150,9 @@ const collections = [
                     }
                 },
                 createdAt: { bsonType: "date" },
-                createdBy: { bsonType: "string", maxLength: 128 }
+                createdBy: { bsonType: "string", maxLength: 128 },
+                updatedAt: { bsonType: "date", description: "Time of the last change made through the Telemetry service." },
+                version: { bsonType: "int", minimum: 0, description: "Optimistic concurrency: raised by every update, which succeeds only at the expected version." }
             },
             additionalProperties: false
         }
@@ -221,4 +225,9 @@ for (const collection of collections) {
     for (const index of collection.indexes) {
         db.getCollection(collection.name).createIndex(index.keys, { name: index.name, ...(index.options || {}) });
     }
+}
+
+for (const name of ["discussions", "crashReports"]) {
+    const result = db.getCollection(name).updateMany({ version: { $exists: false } }, { $set: { version: NumberInt(0) } });
+    print(`versioned ${name}: ${result.modifiedCount} document(s) without version`);
 }

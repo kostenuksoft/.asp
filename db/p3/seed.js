@@ -138,7 +138,8 @@ seed("discussions", ["packageKey", "title"], [
             }
         ],
         createdAt: at("2026-09-12T10:00:00Z"),
-        createdBy: "discussion-api"
+        createdBy: "discussion-api",
+        version: NumberInt(0)
     },
     {
         packageId: NumberLong(3),
@@ -162,7 +163,8 @@ seed("discussions", ["packageKey", "title"], [
             }
         ],
         createdAt: at("2026-09-08T12:30:00Z"),
-        createdBy: "discussion-api"
+        createdBy: "discussion-api",
+        version: NumberInt(0)
     },
     {
         packageId: NumberLong(4),
@@ -187,7 +189,8 @@ seed("discussions", ["packageKey", "title"], [
             }
         ],
         createdAt: at("2026-09-15T11:00:00Z"),
-        createdBy: "discussion-api"
+        createdBy: "discussion-api",
+        version: NumberInt(0)
     }
 ]);
 
@@ -217,7 +220,8 @@ seed("crashReports", ["fingerprint", "occurredAt"], [
         ],
         context: { serviceName: "checkout-api", region: "eu-central-1", requestId: "c9f1a4" },
         createdAt: at("2026-09-13T22:41:05Z"),
-        createdBy: "telemetry-agent"
+        createdBy: "telemetry-agent",
+        version: NumberInt(0)
     },
     {
         kind: "performanceDegradation",
@@ -233,7 +237,8 @@ seed("crashReports", ["fingerprint", "occurredAt"], [
         metric: { name: "blobUploadLatencyP95", observed: 2840.5, threshold: 1200.0, unit: "ms" },
         context: { serviceName: "media-ingest", bucket: "user-uploads" },
         createdAt: at("2026-09-15T08:12:03Z"),
-        createdBy: "telemetry-agent"
+        createdBy: "telemetry-agent",
+        version: NumberInt(0)
     },
     {
         kind: "healthCheckFailure",
@@ -247,7 +252,8 @@ seed("crashReports", ["fingerprint", "occurredAt"], [
         environment: "staging",
         checkName: "billing-api-reachability",
         createdAt: at("2026-09-16T03:30:02Z"),
-        createdBy: "telemetry-agent"
+        createdBy: "telemetry-agent",
+        version: NumberInt(0)
     }
 ]);
 
