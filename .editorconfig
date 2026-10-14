@@ -191,3 +191,6 @@ dotnet_diagnostic.IDE0058.severity = none
 
 [**/Migrations/*.cs]
 generated_code = true
+
+[Services/Telemetry/Telemetry.Domain/Entities/*.cs]
+dotnet_style_readonly_field = false
