@@ -19,6 +19,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageVersion Include="MediatR" Version="13.1.0" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
+    <PackageVersion Include="MongoDB.Bson" Version="3.12.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.12.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageVersion Include="AutoMapper" Version="15.1.3" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.3.0" />
