@@ -18,6 +18,7 @@
     <Project Path="Services/Telemetry/Telemetry.Domain/Telemetry.Domain.csproj" />
     <Project Path="Services/Telemetry/Telemetry.Infrastructure/Telemetry.Infrastructure.csproj" />
     <Project Path="Services/Telemetry/Telemetry.Tests/Telemetry.Tests.csproj" />
+    <Project Path="Services/Telemetry/Telemetry.WebApi/Telemetry.WebApi.csproj" />
   </Folder>
   <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
 </Solution>
