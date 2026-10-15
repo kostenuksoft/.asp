@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Registry.Bll.Dtos;
 using Registry.Bll.Services.Interfaces;
 using Registry.Bll.Specifications;
@@ -8,9 +10,11 @@ using Registry.Domain.Exceptions;
 
 namespace Registry.Bll.Services;
 
-public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper) : IPackageService
+public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<PackageService> logger) : IPackageService
 {
     private const int MaxTopPackages = 50;
+
+    private static readonly ActivitySource s_activitySource = new("Registry.Api");
 
     public async Task<PagedResult<PackageDto>> GetListAsync(
         PackageQuery query,
@@ -55,6 +59,9 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper) : IPa
     {
         ArgumentNullException.ThrowIfNull(input);
 
+        using Activity? activity = s_activitySource.StartActivity("CreatePackage");
+        activity?.SetTag("publisher.id", input.PublisherId);
+
         Publisher publisher = await unitOfWork.Publishers.GetByIdAsync([input.PublisherId], cancellationToken)
             ?? throw new EntityNotFoundException($"Publisher {input.PublisherId} was not found.");
 
@@ -67,6 +74,14 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper) : IPa
         await unitOfWork.Packages.AddAsync(package, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        activity?.SetTag("package.id", package.PackageId);
+        logger.LogInformation(
+            "Package {PackageId} '{PackageKey}' created with licence price {LicensePrice}",
+            package.PackageId,
+            $"{publisher.Slug}/{package.Name}",
+            package.LicensePrice
+        );
+
         return mapper.Map<PackageDto>(package);
     }
 
@@ -78,9 +93,20 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper) : IPa
     {
         ArgumentNullException.ThrowIfNull(input);
 
+        using Activity? activity = s_activitySource.StartActivity("ChangeLicensePrice");
+        activity?.SetTag("package.id", packageId);
+
         Package package = await FindAsync(packageId, cancellationToken);
+        decimal previousPrice = package.LicensePrice;
         package.ChangeLicensePrice(input.LicensePrice);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Package {PackageId} licence price changed from {PreviousPrice} to {LicensePrice}",
+            packageId,
+            previousPrice,
+            package.LicensePrice
+        );
     }
 
     public async Task RegisterDownloadsAsync(
@@ -101,9 +127,14 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper) : IPa
         CancellationToken cancellationToken
     )
     {
+        using Activity? activity = s_activitySource.StartActivity("UnlistPackage");
+        activity?.SetTag("package.id", packageId);
+
         Package package = await FindAsync(packageId, cancellationToken);
         package.Unlist();
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Package {PackageId} unlisted", packageId);
     }
 
     public async Task RelistAsync(

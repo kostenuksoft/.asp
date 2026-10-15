@@ -1,23 +1,18 @@
-using System.Globalization;
 using System.Reflection;
 using Cicd.Api.ErrorHandling;
 using Cicd.Bll.Services;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
-using Serilog;
+using Platform.ServiceDefaults;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
 
 string connectionString = builder.Configuration.GetConnectionString("CicdDb")
     ?? throw new InvalidOperationException("Connection string 'CicdDb' is missing.");
 
 Assembly businessLayer = typeof(BuildRunService).Assembly;
-
-builder.Host.UseSerilog((context, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
-);
 
 builder.Services.AddScoped<IUnitOfWork>(_ => new UnitOfWork(connectionString));
 builder.Services.AddScoped<IPipelineService, PipelineService>();
@@ -41,8 +36,8 @@ builder.Services.AddSwaggerGen();
 
 WebApplication app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
-app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
@@ -50,10 +45,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapDefaultEndpoints();
 
 app.Run();

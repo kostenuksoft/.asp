@@ -7,10 +7,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Telemetry.Application\Telemetry.Application.csproj" />
     <ProjectReference Include="..\Telemetry.Infrastructure\Telemetry.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Platform.ServiceDefaults\Platform.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 

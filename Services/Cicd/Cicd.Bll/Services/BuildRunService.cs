@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using System.Text.Json;
 using AutoMapper;
 using Cicd.Bll.Dtos;
@@ -12,6 +13,8 @@ namespace Cicd.Bll.Services;
 
 public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<BuildRunService> logger) : IBuildRunService
 {
+    private static readonly ActivitySource s_activitySource = new("Cicd.Api");
+
     public async Task<BuildRunDto> GetByIdAsync(
         long buildRunId,
         CancellationToken cancellationToken
@@ -51,6 +54,9 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
     {
         ArgumentNullException.ThrowIfNull(input);
 
+        using Activity? activity = s_activitySource.StartActivity("QueueBuildRun");
+        activity?.SetTag("pipeline.id", input.PipelineId);
+
         Pipeline pipeline = await unitOfWork.Pipelines.GetByIdAsync(input.PipelineId, cancellationToken)
             ?? throw new NotFoundException($"Pipeline {input.PipelineId} was not found.");
         if (!pipeline.IsEnabled)
@@ -74,6 +80,15 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
         };
 
         long buildRunId = await unitOfWork.BuildRuns.QueueAsync(new BuildRun { PipelineId = pipeline.PipelineId }, detail, cancellationToken);
+        activity?.SetTag("build_run.id", buildRunId);
+        logger.LogInformation(
+            "Build run {BuildRunId} queued for pipeline {PipelineId} on branch {BranchName}, trigger {TriggerKind}",
+            buildRunId,
+            pipeline.PipelineId,
+            input.BranchName,
+            input.TriggerKind
+        );
+
         return await GetByIdAsync(buildRunId, cancellationToken);
     }
 
@@ -127,6 +142,10 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
     )
     {
         ArgumentNullException.ThrowIfNull(input);
+
+        using Activity? activity = s_activitySource.StartActivity("CompleteBuildRun");
+        activity?.SetTag("build_run.id", buildRunId);
+        activity?.SetTag("artifact.count", input.Artifacts.Count);
 
         bool committed = false;
         await unitOfWork.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
@@ -194,6 +213,7 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
             if (!committed)
             {
                 await unitOfWork.RollbackAsync(CancellationToken.None);
+                activity?.SetStatus(ActivityStatusCode.Error, "Completion rolled back");
                 logger.LogWarning("Build run {BuildRunId} completion rolled back", buildRunId);
             }
         }
