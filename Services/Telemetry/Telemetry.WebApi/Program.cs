@@ -1,26 +1,26 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Serilog;
+using Platform.ServiceDefaults;
 using Telemetry.Application;
 using Telemetry.Application.Common.Mappings;
 using Telemetry.Infrastructure;
+using Telemetry.Infrastructure.Persistence;
 using Telemetry.WebApi.ErrorHandling;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((context, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console(
-        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {RequestId} {RequestPath} {Message:lj}{NewLine}{Exception}",
-        formatProvider: CultureInfo.InvariantCulture
-    )
-);
+builder.AddServiceDefaults();
+
+string? telemetryDb = builder.Configuration.GetConnectionString("TelemetryDb");
 
 builder.Services
     .AddApplication(builder.Configuration)
     .AddInfrastructure(builder.Configuration);
+
+if (!string.IsNullOrEmpty(telemetryDb))
+{
+    builder.Services.PostConfigure<MongoDbOptions>(options => options.ConnectionString = telemetryDb);
+}
 
 builder.Services.AddAutoMapper(options =>
 {
@@ -41,9 +41,7 @@ builder.Services.AddSwaggerGen();
 
 WebApplication app = builder.Build();
 
-app.UseSerilogRequestLogging(options => options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
-    diagnosticContext.Set("CorrelationId", httpContext.TraceIdentifier)
-);
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
@@ -52,11 +50,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapDefaultEndpoints();
 
 await app.RunAsync();

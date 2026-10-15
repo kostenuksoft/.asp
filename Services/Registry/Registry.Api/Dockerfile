@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY global.json NuGet.config Directory.Build.props Directory.Packages.props .editorconfig ./
+COPY Platform.ServiceDefaults/ Platform.ServiceDefaults/
 COPY Services/Registry/ Services/Registry/
 
 RUN dotnet restore Services/Registry/Registry.Api/Registry.Api.csproj

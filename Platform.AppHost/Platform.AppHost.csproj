@@ -10,10 +10,15 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="Aspire.Hosting.MongoDB" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Services\Cicd\Cicd.Api\Cicd.Api.csproj" />
+    <ProjectReference Include="..\Services\Registry\Registry.Api\Registry.Api.csproj" />
+    <ProjectReference Include="..\Services\Telemetry\Telemetry.WebApi\Telemetry.WebApi.csproj" />
+    <ProjectReference Include="..\Platform.Aggregator\Platform.Aggregator.csproj" />
+    <ProjectReference Include="..\Platform.ApiGateway\Platform.ApiGateway.csproj" />
   </ItemGroup>
 
 </Project>
