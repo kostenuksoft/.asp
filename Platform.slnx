@@ -21,4 +21,5 @@
     <Project Path="Services/Telemetry/Telemetry.WebApi/Telemetry.WebApi.csproj" />
   </Folder>
   <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
+  <Project Path="Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
 </Solution>
