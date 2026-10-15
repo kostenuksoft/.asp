@@ -189,7 +189,7 @@ flowchart LR
 | `Cicd.Dal` | `IGenericRepository<T>`, `BaseDapperRepository<T>`, репозиторії на Dapper і на чистому ADO.NET, Unit of Work |
 | `Cicd.Domain` | моделі таблиць схеми `cicd` і доменні винятки |
 | `Cicd.Tests` | інтеграційні тести DAL і BLL, перевірка конфігурації AutoMapper |
-| `Platform.AppHost` | запуск API разом із базою даних у .NET Aspire |
+| `Platform.AppHost` | запуск API разом з усією платформою в .NET Aspire |
 
 ### Що потрібно для запуску
 
@@ -215,29 +215,11 @@ dotnet user-secrets set "AutoMapper:LicenseKey" "<ключ з automapper.io>" --
 
 ### Запуск через Aspire
 
-1. Запустіть Docker Desktop.
-2. Один раз зробіть довіреним сертифікат розробника: `dotnet dev-certs https --trust`.
-3. За потреби збережіть ключ AutoMapper у user secrets (команда вище).
-4. З кореня репозиторію запустіть AppHost:
-
-   ```bash
-   dotnet run --project Platform.AppHost
-   ```
-
-5. Відкрийте Aspire Dashboard за посиланням із консолі й дочекайтеся статусу Running для `sql`,
-   `CicdDb` і `cicd-api`.
-6. Відкрийте `https://localhost:7178/swagger` або виконайте запити з розділу «Приклади запитів
-   (curl)».
-
-AppHost створює контейнер SQL Server, у ньому базу `DevHub_Cicd` як ресурс `CicdDb` і заповнює її
-скриптами `db/p1/schema.sql`, `procedures.sql` та `seed.sql`; API стартує лише тоді, коли база
-готова. Посилання на Aspire Dashboard з’являється в консолі, там же видно стан ресурсів `sql`,
-`CicdDb` і `cicd-api`. API відповідає за адресою `https://localhost:7178`, опис усіх ендпоінтів –
-на `https://localhost:7178/swagger`.
-
-Так виглядають ресурси в Aspire Dashboard після запуску, усі три мають статус Running:
-
-![Aspire Dashboard: sql, CicdDb і cicd-api у статусі Running](docs/screenshots/aspire-dashboard.png)
+Сервіс стартує разом з усією платформою, кроки наведено в розділі «Запуск платформи». AppHost
+створює контейнер SQL Server, у ньому базу `DevHub_Cicd` як ресурс `CicdDb` і заповнює її скриптами
+`db/p1/schema.sql`, `procedures.sql` та `seed.sql`; API стартує лише тоді, коли база готова. Через
+Gateway сервіс доступний на `http://localhost:5000`, напряму – на `https://localhost:7178`, опис
+усіх ендпоінтів – на `https://localhost:7178/swagger`.
 
 Перелік ендпоінтів API у Swagger:
 
@@ -417,31 +399,18 @@ curl -i "$API/api/tags/infrastructure/recent-packages?since=2026-08-01"
 
 ### Логування
 
-Serilog читає рівні з розділу `Serilog` файла `appsettings.json` і пише в консоль. Кожен рядок має
-властивості `RequestId` і `RequestPath` з контексту запиту, а підсумковий рядок запиту – ще й
-`CorrelationId`. Команди EF Core логуються на рівні Information (категорія
-`Microsoft.EntityFrameworkCore.Database.Command`), тому в лозі видно кожен SQL-запит. Виняток
-записується один раз, в обробнику помилок. Рівень можна змінити без правки файла змінною оточення,
-наприклад `Serilog__MinimumLevel__Default=Warning`.
+Serilog налаштовано один раз у `Platform.ServiceDefaults` (розділ «Логування й трасування»), тому
+сервіс пише ті самі структуровані записи, що й решта платформи, з `CorrelationId` запиту. Секція
+`Serilog` в `appsettings.Development.json` лишає для категорії
+`Microsoft.EntityFrameworkCore.Database.Command` рівень Information, тож у лозі видно кожен
+SQL-запит EF Core. Виняток записується один раз, в обробнику помилок. Рівень можна змінити без
+правки файла змінною оточення, наприклад
+`Serilog__MinimumLevel__Override__Microsoft.EntityFrameworkCore.Database.Command=Warning`.
 
 Запит `GET /api/packages/2` завантажує пакет разом із видавцем, версіями, маніфестами й тегами через
 `Include` – це один SQL-запит. Запит `GET /api/tags/3` спершу читає тег, а пакети довантажує окремо
-через `Entry(...).Collection(...).LoadAsync()` – це два запити:
-
-```text
-[12:57:34 INF] 0HNP88NTIOIP9:00000001 /api/packages/2 Executed DbCommand (27ms) [Parameters=[@__packageId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
-SELECT [s].[PackageId], [s].[CreatedAt], ...
-FROM (
-...
-[12:57:34 INF] 0HNP88NTIOIPA:00000001 /api/tags/3 Executed DbCommand (1ms) [Parameters=[@__tagId_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
-SELECT TOP(1) [t].[TagId], [t].[CreatedAt], ...
-FROM [registry].[Tag] AS [t]
-...
-[12:57:34 INF] 0HNP88NTIOIPA:00000001 /api/tags/3 Executed DbCommand (3ms) [Parameters=[@__p_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
-SELECT [p].[PackageId], [p].[TagId], [p].[AssignedAt], ...
-FROM [registry].[PackageTag] AS [p]
-...
-```
+через `Entry(...).Collection(...).LoadAsync()` – це два запити. У вкладці Structured logs фільтр за
+`CorrelationId` першого запиту показує один запис `Executed DbCommand`, другого – два.
 
 ### Знімки екрана
 
@@ -531,8 +500,9 @@ flowchart TB
 Рядок підключення й назву бази задає секція `MongoDb` в `appsettings.json`; для Development, Staging
 і Production є окремі файли `appsettings.{Environment}.json`. Розмір пулу з’єднань і таймаут вибору
 сервера записано в самому рядку (`maxPoolSize`, `serverSelectionTimeoutMS`). Змінна оточення
-`MongoDb__ConnectionString` має пріоритет над файлом. Стан підключення до MongoDB повертає
-`GET /health`.
+`MongoDb__ConnectionString` має пріоритет над файлом. Під AppHost рядок підключення приходить як
+`ConnectionStrings:TelemetryDb` і замінює значення із секції `MongoDb`. Стан підключення до MongoDB
+повертає `GET /health`.
 
 ### Приклади запитів (curl)
 
@@ -584,3 +554,191 @@ curl -i "$API/api/crash-reports?severity=high"
 Результат `db.discussions.getIndexes()` у вбудованій оболонці Compass:
 
 ![Compass: результат db.discussions.getIndexes()](docs/screenshots/telemetry-get-indexes.png)
+
+## Платформа на .NET Aspire
+
+Три сервіси працюють як одна платформа, яку запускає одна команда. `Platform.AppHost` піднімає
+контейнери баз даних, сервіси, агрегатор і шлюз у правильному порядку. Клієнт звертається лише до
+`Platform.ApiGateway` на порту 5000, а сервіси знаходять один одного за іменами ресурсів AppHost
+(`cicd-api`, `registry-api`, `telemetry-api`, `aggregator`) замість `localhost` і порту.
+
+### Схема рішення
+
+```mermaid
+flowchart LR
+    Client[Клієнт] --> Gateway[Platform.ApiGateway :5000]
+    Gateway --> Cicd[cicd-api]
+    Gateway --> Registry[registry-api]
+    Gateway --> Telemetry[telemetry-api]
+    Gateway --> Aggregator[aggregator]
+    Aggregator -. Task.WhenAll .-> Cicd
+    Aggregator -. Task.WhenAll .-> Registry
+    Aggregator -. Task.WhenAll .-> Telemetry
+    Cicd --> CicdDb[(SQL Server – CicdDb)]
+    Registry --> RegistryDb[(SQL Server – RegistryDb)]
+    Telemetry --> TelemetryDb[(MongoDB – TelemetryDb)]
+```
+
+| Проєкт | Вміст |
+| --- | --- |
+| `Platform.AppHost` | `AppHost.cs`: контейнери SQL Server і MongoDB з томами даних, реєстрація сервісів, агрегатора й шлюзу з `WithReference` і `WaitFor` |
+| `Platform.ServiceDefaults` | `Extensions.cs` (Serilog, OpenTelemetry, health checks, service discovery, стійкість HttpClient), `CorrelationIdMiddleware`, `CorrelationIdHandler` |
+| `Platform.ApiGateway` | маршрути YARP, логування маршрутизації, `Dockerfile` |
+| `Platform.Aggregator` | типізовані HTTP-клієнти трьох сервісів, політики стійкості, картка запуску збірки, обробка часткових відмов |
+
+Кожен сервіс посилається лише на `Platform.ServiceDefaults`, а AppHost – на всі сервіси, шлюз і
+агрегатор. На AppHost не посилається ніхто. У коді сервісів змінено тільки `Program.cs`: він на
+початку викликає `AddServiceDefaults()`, після `Build()` підключає `CorrelationIdMiddleware`, а
+наприкінці `MapDefaultEndpoints()`; власне налаштування Serilog із сервісів прибрано. Поза
+`Program.cs` лежать ще дві зміни: власні spans бізнес-операцій (розділ «Логування й трасування») і
+підписка драйвера MongoDB на трасування в `MongoDbContext`.
+
+### Запуск платформи
+
+Потрібні .NET SDK 9.0.318 і Docker Desktop.
+
+1. Запустіть Docker Desktop.
+2. Один раз зробіть довіреним сертифікат розробника: `dotnet dev-certs https --trust`.
+3. Збережіть пароль SQL Server у user secrets AppHost. Пароль – параметр-секрет `sql-password`, у коді
+   його немає. Нижче локальний навчальний пароль:
+
+   ```bash
+   dotnet user-secrets set "Parameters:sql-password" "Repetovskyi#Sql26" --project Platform.AppHost
+   ```
+
+4. За потреби збережіть ключі ліцензій AutoMapper і Lucky Penny (розділи сервісів вище).
+5. З кореня репозиторію запустіть AppHost:
+
+   ```bash
+   dotnet run --project Platform.AppHost
+   ```
+
+6. Відкрийте Aspire Dashboard за посиланням із консолі й дочекайтеся статусу Running для всіх
+   одинадцяти ресурсів.
+7. Надсилайте запити на Gateway: `http://localhost:5000`.
+
+Перший запуск завантажує образи SQL Server 2022 і MongoDB 8. Дані лежать у томах Docker, тому
+після перезапуску бази лишаються. Том SQL Server запам’ятовує пароль першого запуску; щоб змінити
+пароль, видаліть том `platform.apphost-…-sql-data`. Порядок старту задають ланцюжки `WaitFor`:
+бази даних, потім сервіси, агрегатор і наостанок Gateway. Сервіси отримують рядки підключення
+`ConnectionStrings__CicdDb`, `ConnectionStrings__RegistryDb` і `ConnectionStrings__TelemetryDb`;
+імена збігаються з тими, що сервіси читали й раніше, а резервні рядки в `appsettings.json` лишилися
+для запуску без Aspire.
+
+![Aspire Dashboard: усі ресурси платформи у статусі Running](docs/screenshots/platform-resources.png)
+
+### Маршрути Gateway
+
+Маршрути YARP лежать у секції `ReverseProxy` файла `Platform.ApiGateway/appsettings.json`. Кожен
+префікс API має маршрут виду `/api/pipelines/{**catch-all}`, а кластер сервісу вказує на адресу
+`http://<ім’я ресурсу>`, яку підставляє service discovery Aspire. Маршрут агрегатора має `Order: 1`.
+
+| Префікс | Кластер | Ресурс |
+| --- | --- | --- |
+| `/api/aggregator` | `aggregator` | `aggregator` |
+| `/api/pipelines`, `/api/build-runs`, `/api/agents` | `cicd` | `cicd-api` |
+| `/api/packages`, `/api/tags` | `registry` | `registry-api` |
+| `/api/discussions`, `/api/crash-reports` | `telemetry` | `telemetry-api` |
+
+`CorrelationIdMiddleware` стоїть перед `MapReverseProxy`. Якщо клієнт не надіслав заголовок
+`X-Correlation-Id`, Gateway генерує GUID і записує факт генерації в лог. Ідентифікатор потрапляє в
+проксований запит і повертається в заголовку відповіді. Після кожного запиту Gateway логує метод,
+шлях, IP клієнта, маршрут, кластер, адресу сервісу, статус і тривалість; помилку недоступного
+сервісу пише окремим попередженням.
+
+### Приклади запитів через Gateway (curl)
+
+```bash
+GW=http://localhost:5000
+
+curl -i $GW/api/pipelines
+
+curl -i "$GW/api/packages?page=1&pageSize=5"
+
+curl -i "$GW/api/discussions?packageKey=platform-team/devhub-auth"
+
+curl -i -X PUT $GW/api/packages/4/license-price -H "Content-Type: application/json" \
+  -d '{"licensePrice":12.50}'
+
+curl -i -H "X-Correlation-Id: repetovskyi-card-run1" $GW/api/aggregator/build-runs/1/full
+
+curl -i $GW/api/aggregator/build-runs/999/full
+```
+
+Кожна відповідь має заголовок `X-Correlation-Id`; ідентифікатор, який надіслав клієнт, Gateway не
+змінює. `PUT` повертає 204. Картка запуску 1 повертає 200, картка запуску, якого немає, – 404.
+
+### Aggregator
+
+`GET /api/aggregator/build-runs/{id}/full` повертає картку запуску збірки. Спершу агрегатор читає
+хронологію запуску з `cicd-api`, бо без неї складати нічого. Далі для кожного пакета, який запуск
+зібрав, паралельно через `Task.WhenAll` запитує дані пакета з `registry-api`, а обговорення й звіти
+про збої – з `telemetry-api`. Кожен виклик пише в лог свою тривалість, а `CancellationToken` доходить
+до всіх викликів. До картки потрапляють лише пакети з артефактів цього запуску та обговорення саме цих
+пакетів.
+
+Клієнти `CicdClient`, `RegistryClient` і `TelemetryClient` зареєстровано через `AddHttpClient` з
+адресами `https+http://cicd-api`, `https+http://registry-api` і `https+http://telemetry-api`.
+`CorrelationIdHandler` із `Platform.ServiceDefaults` додає до кожного вихідного запиту той самий
+`X-Correlation-Id`.
+
+```json
+{
+  "run": { "buildRunId": 1, "pipelineName": "devhub-auth CI", "runNumber": 1, "status": "Succeeded", "durationSeconds": 420 },
+  "packages": [
+    {
+      "packageId": 2,
+      "packageKey": "platform-team/devhub-auth",
+      "builtVersions": ["2.0.0"],
+      "licensePrice": 0.00,
+      "downloadCount": 48210,
+      "discussionCount": 2,
+      "discussions": [ { "title": "Document the claim mapping for service accounts", "state": "open" } ],
+      "crashReportCount": 1,
+      "crashReports": [ { "kind": "unhandledException", "severity": "high" } ]
+    }
+  ],
+  "warnings": []
+}
+```
+
+JSON іде в camelCase, а поля зі значенням null агрегатор не серіалізує. Якщо `telemetry-api`
+недоступний, агрегатор усе одно повертає картку зі статусом 200: дані запуску й пакетів є, полів
+обговорень і збоїв немає, а `warnings` містить `"telemetry-api is unavailable"`. Перевірити це можна
+так:
+
+1. У Dashboard зупиніть ресурс `telemetry-api` (дія Stop).
+2. Повторіть запит картки запуску 1.
+3. Запустіть ресурс знову (Start) – наступна відповідь знову повна.
+
+Політики стійкості клієнтів агрегатора задано в його `Program.cs`: спроба обмежена 2 секундами,
+повтор один, увесь виклик – 5 секунд. Тому поки сервіс зупинено, картка приходить приблизно за 5
+секунд. Недоступність `cicd-api` дає 503, бо без запуску картки не існує.
+
+### Логування й трасування
+
+`AddServiceDefaults()` робить Serilog основним логером для всіх п’яти застосунків. До кожного запису
+Serilog додає властивості `ServiceName`, `EnvironmentName`, `MachineName`, `ThreadId` і контекст запиту
+(`FromLogContext`); у консоль вони йдуть у форматі `CompactJsonFormatter`. Мінімальний рівень –
+Debug у Development та Information в інших середовищах, а шумні категорії ASP.NET Core, EF Core,
+HttpClient і Polly підняті до Warning. Параметр `writeToProviders: true` передає записи провайдеру
+OpenTelemetry, тому вони з’являються у вкладці Structured logs разом із `TraceId` і `SpanId`.
+
+`CorrelationIdMiddleware` кладе `CorrelationId` у `LogContext` і логує початок та кінець запиту.
+Ідентифікатор кореляції створює застосунок, і він описує звернення клієнта; `TraceId` генерує
+OpenTelemetry для технічного трасування. Пошук за одним `CorrelationId` у Structured logs знаходить
+записи всіх сервісів ланцюжка:
+
+![Structured logs: записи п’яти сервісів з одним CorrelationId](docs/screenshots/platform-logs-correlation.png)
+
+Трасування охоплює вхідні запити ASP.NET Core, вихідні виклики HttpClient, команди SqlClient (і
+Dapper, і EF Core працюють через `Microsoft.Data.SqlClient`) та команди MongoDB через
+`DiagnosticsActivityEventSubscriber`. Експорт іде через OTLP у Dashboard. У Development
+зберігається кожен trace, в інших середовищах частку задає `OpenTelemetry:SamplingRatio`. Власні
+spans мають бізнес-операції: `QueueBuildRun` і `CompleteBuildRun` у `BuildRunService`,
+`CreatePackage`, `ChangeLicensePrice` і `UnlistPackage` у `PackageService`, `CreateDiscussion` і
+`ChangeDiscussionState` в обробниках команд Telemetry. Trace картки запуску показує весь шлях
+Gateway → Aggregator → сервіси → бази даних, і виклики `registry-api` та `telemetry-api` в ньому
+йдуть паралельно:
+
+![Trace картки запуску: Gateway, Aggregator, три сервіси, SQL Server і MongoDB](docs/screenshots/platform-trace.png)
