@@ -1,0 +1,317 @@
+[
+  {
+    "_id": { "$oid": "6aa522a03c9a51e04b7d0001" },
+    "packageId": { "$numberLong": "2" },
+    "packageKey": "platform-team/devhub-auth",
+    "packageName": "devhub-auth",
+    "publisherSlug": "platform-team",
+    "title": "Expired tokens throw instead of returning a validation result",
+    "category": "bug",
+    "state": "answered",
+    "labels": ["regression", "v2"],
+    "affectedVersions": ["2.0.0"],
+    "linkedBuildRunIds": [{ "$numberLong": "2" }],
+    "openedBy": "m.shevchenko",
+    "openedAt": { "$date": "2026-09-12T10:00:00Z" },
+    "commentCount": 3,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "m.shevchenko",
+        "body": "After upgrading to 2.0.0 an expired token throws SecurityTokenExpiredException rather than returning Invalid.",
+        "postedAt": { "$date": "2026-09-12T10:00:00Z" },
+        "reactions": { "+1": 4 },
+        "replies": [
+          {
+            "commentId": "c1r1",
+            "author": "o.kovalenko",
+            "body": "Reproduced. The change was intentional but undocumented.",
+            "postedAt": { "$date": "2026-09-13T08:15:00Z" }
+          }
+        ]
+      },
+      {
+        "commentId": "c2",
+        "author": "o.kovalenko",
+        "body": "Fixed in 2.1.0: validation returns a result object and only throws on malformed input.",
+        "postedAt": { "$date": "2026-09-14T16:40:00Z" },
+        "reactions": { "+1": 7, "heart": 2 },
+        "replies": []
+      },
+      {
+        "commentId": "c3",
+        "author": "m.shevchenko",
+        "body": "Confirmed on 2.1.0. Thanks.",
+        "postedAt": { "$date": "2026-09-15T09:05:00Z" },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-12T10:00:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6a9fffc83c9a51e04b7d0002" },
+    "packageId": { "$numberLong": "3" },
+    "packageKey": "platform-team/devhub-storage",
+    "packageName": "devhub-storage",
+    "publisherSlug": "platform-team",
+    "title": "Support resumable uploads for files over 5 GB",
+    "category": "featureRequest",
+    "state": "open",
+    "labels": ["enhancement"],
+    "openedBy": "a.tkachenko",
+    "openedAt": { "$date": "2026-09-08T12:30:00Z" },
+    "commentCount": 1,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "a.tkachenko",
+        "body": "Large media ingest fails on flaky links. Resumable uploads would avoid restarting from zero.",
+        "postedAt": { "$date": "2026-09-08T12:30:00Z" },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-08T12:30:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aa925303c9a51e04b7d0003" },
+    "packageId": { "$numberLong": "4" },
+    "packageKey": "research-team/graph-explorer",
+    "packageName": "graph-explorer",
+    "publisherSlug": "research-team",
+    "title": "Is this package ready for production use?",
+    "category": "question",
+    "state": "closed",
+    "labels": ["experimental"],
+    "openedBy": "d.bondarenko",
+    "openedAt": { "$date": "2026-09-15T11:00:00Z" },
+    "closedAt": { "$date": "2026-09-16T10:20:00Z" },
+    "commentCount": 1,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "research-bot",
+        "body": "No. This package is tagged experimental and has no support commitment.",
+        "postedAt": { "$date": "2026-09-16T10:20:00Z" },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-15T11:00:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aa275143c9a51e04b7d0004" },
+    "packageId": { "$numberLong": "1" },
+    "packageKey": "payments-team/billing-sdk",
+    "packageName": "billing-sdk",
+    "publisherSlug": "payments-team",
+    "title": "Invoice totals round differently from the ledger",
+    "category": "bug",
+    "state": "open",
+    "labels": ["rounding"],
+    "affectedVersions": ["0.9.1"],
+    "openedBy": "i.melnyk",
+    "openedAt": { "$date": "2026-09-10T09:15:00Z" },
+    "commentCount": 1,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "i.melnyk",
+        "body": "Totals with three line items differ from the ledger by one cent: the SDK rounds per line, the ledger rounds the sum.",
+        "postedAt": { "$date": "2026-09-10T09:15:00Z" },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-10T09:15:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aa40a8c3c9a51e04b7d0005" },
+    "packageId": { "$numberLong": "5" },
+    "packageKey": "platform-team/devhub-logging",
+    "packageName": "devhub-logging",
+    "publisherSlug": "platform-team",
+    "title": "Add a sink for OpenTelemetry logs",
+    "category": "featureRequest",
+    "state": "open",
+    "labels": ["enhancement", "observability"],
+    "openedBy": "o.kovalenko",
+    "openedAt": { "$date": "2026-09-11T14:05:00Z" },
+    "commentCount": 0,
+    "comments": [],
+    "createdAt": { "$date": "2026-09-11T14:05:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aa661603c9a51e04b7d0006" },
+    "packageId": { "$numberLong": "6" },
+    "packageKey": "platform-team/devhub-config",
+    "packageName": "devhub-config",
+    "publisherSlug": "platform-team",
+    "title": "Secret references are not resolved in nested sections",
+    "category": "bug",
+    "state": "answered",
+    "labels": ["secrets"],
+    "affectedVersions": ["1.3.0"],
+    "openedBy": "p.savchenko",
+    "openedAt": { "$date": "2026-09-13T08:40:00Z" },
+    "commentCount": 2,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "p.savchenko",
+        "body": "A secret reference two levels deep stays as the literal reference string after binding.",
+        "postedAt": { "$date": "2026-09-13T08:40:00Z" },
+        "replies": []
+      },
+      {
+        "commentId": "c2",
+        "author": "o.kovalenko",
+        "body": "Nested sections are resolved from 1.3.1; the loader now walks the whole configuration tree.",
+        "postedAt": { "$date": "2026-09-14T10:05:00Z" },
+        "reactions": { "+1": 3 },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-13T08:40:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aa81a003c9a51e04b7d0007" },
+    "packageId": { "$numberLong": "7" },
+    "packageKey": "platform-team/devhub-messaging",
+    "packageName": "devhub-messaging",
+    "publisherSlug": "platform-team",
+    "title": "Version 1.2 adds retry headers to published messages",
+    "category": "announcement",
+    "state": "open",
+    "labels": ["release"],
+    "openedBy": "platform-bot",
+    "openedAt": { "$date": "2026-09-14T16:00:00Z" },
+    "commentCount": 0,
+    "comments": [],
+    "createdAt": { "$date": "2026-09-14T16:00:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aa140e03c9a51e04b7d0008" },
+    "packageId": { "$numberLong": "8" },
+    "packageKey": "payments-team/invoice-renderer",
+    "packageName": "invoice-renderer",
+    "publisherSlug": "payments-team",
+    "title": "PDF fonts are missing in Linux containers",
+    "category": "bug",
+    "state": "open",
+    "labels": ["linux", "fonts"],
+    "openedBy": "a.tkachenko",
+    "openedAt": { "$date": "2026-09-09T11:20:00Z" },
+    "commentCount": 1,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "a.tkachenko",
+        "body": "Rendered invoices fall back to a default font in the aspnet image; Cyrillic names show as boxes.",
+        "postedAt": { "$date": "2026-09-09T11:20:00Z" },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-09T11:20:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6a9e8b203c9a51e04b7d0009" },
+    "packageId": { "$numberLong": "9" },
+    "packageKey": "payments-team/tax-rules",
+    "packageName": "tax-rules",
+    "publisherSlug": "payments-team",
+    "title": "Which jurisdictions are covered in 2027?",
+    "category": "question",
+    "state": "answered",
+    "labels": [],
+    "openedBy": "d.bondarenko",
+    "openedAt": { "$date": "2026-09-07T10:00:00Z" },
+    "commentCount": 2,
+    "comments": [
+      {
+        "commentId": "c1",
+        "author": "d.bondarenko",
+        "body": "Do the 2027 tables include the new EU reduced rates?",
+        "postedAt": { "$date": "2026-09-07T10:00:00Z" },
+        "replies": []
+      },
+      {
+        "commentId": "c2",
+        "author": "i.melnyk",
+        "body": "Yes, all EU member states plus Ukraine and the United Kingdom.",
+        "postedAt": { "$date": "2026-09-08T09:30:00Z" },
+        "replies": []
+      }
+    ],
+    "createdAt": { "$date": "2026-09-07T10:00:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6a9d6e5c3c9a51e04b7d000a" },
+    "packageId": { "$numberLong": "10" },
+    "packageKey": "payments-team/ledger-client",
+    "packageName": "ledger-client",
+    "publisherSlug": "payments-team",
+    "title": "Timeouts are not configurable per call",
+    "category": "featureRequest",
+    "state": "open",
+    "labels": ["enhancement"],
+    "openedBy": "i.melnyk",
+    "openedAt": { "$date": "2026-09-06T13:45:00Z" },
+    "commentCount": 0,
+    "comments": [],
+    "createdAt": { "$date": "2026-09-06T13:45:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6a9c35783c9a51e04b7d000b" },
+    "packageId": { "$numberLong": "11" },
+    "packageKey": "research-team/model-zoo",
+    "packageName": "model-zoo",
+    "publisherSlug": "research-team",
+    "title": "Scoring model v4 beta: feedback thread",
+    "category": "announcement",
+    "state": "open",
+    "labels": ["beta"],
+    "openedBy": "research-bot",
+    "openedAt": { "$date": "2026-09-05T15:30:00Z" },
+    "commentCount": 0,
+    "comments": [],
+    "createdAt": { "$date": "2026-09-05T15:30:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  },
+  {
+    "_id": { "$oid": "6aaa87183c9a51e04b7d000c" },
+    "packageId": { "$numberLong": "2" },
+    "packageKey": "platform-team/devhub-auth",
+    "packageName": "devhub-auth",
+    "publisherSlug": "platform-team",
+    "title": "Document the claim mapping for service accounts",
+    "category": "question",
+    "state": "open",
+    "labels": ["docs"],
+    "openedBy": "m.shevchenko",
+    "openedAt": { "$date": "2026-09-16T12:10:00Z" },
+    "commentCount": 0,
+    "comments": [],
+    "createdAt": { "$date": "2026-09-16T12:10:00Z" },
+    "createdBy": "discussion-api",
+    "version": 0
+  }
+]

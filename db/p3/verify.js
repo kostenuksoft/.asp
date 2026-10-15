@@ -143,6 +143,10 @@ check(
     `page 1 ${page1.length}, page 2 ${page2.length}`
 );
 
+const unversioned = db.discussions.countDocuments({ version: { $not: { $type: "int" } } })
+    + db.crashReports.countDocuments({ version: { $not: { $type: "int" } } });
+check("optimistic concurrency: discussions and crash reports carry an int version", unversioned === 0, `${unversioned} document(s) without version`);
+
 results.forEach((result, index) => print(`${String(index + 1).padStart(2)} ${result.passed ? "PASS" : "FAIL"} ${result.name} | ${result.detail}`));
 
 const failed = results.filter((result) => !result.passed).length;

@@ -456,3 +456,131 @@ FROM [registry].[PackageTag] AS [p]
 Відповідь 400 з помилками валідації по полях:
 
 ![Swagger: відповідь 400 на створення пакета з порожньою назвою](docs/screenshots/registry-validation-400.png)
+
+## Сервіс телеметрії та обговорень
+
+Проєкт №3 побудовано за Clean Architecture з чотирьох шарів, і залежності в ньому спрямовані
+всередину. `Telemetry.Domain` не посилається на жоден проєкт, а з пакетів має лише `MongoDB.Bson`
+заради типу `ObjectId`; драйвера MongoDB у домені немає. `Telemetry.Application` знає тільки домен.
+`Telemetry.Infrastructure` реалізує інтерфейси, оголошені в домені й в Application. `Telemetry.WebApi`
+посилається на Application та Infrastructure, причому Infrastructure потрібен йому лише для
+реєстрації залежностей під час старту. Кожна операція API – окрема команда або запит MediatR, і
+кожен проходить через ланцюжок behaviors: логування, валідацію FluentValidation, вимірювання часу.
+
+### Схема шарів
+
+```mermaid
+flowchart TB
+    WebApi[Telemetry.WebApi] --> Application[Telemetry.Application]
+    WebApi --> Infrastructure[Telemetry.Infrastructure]
+    Infrastructure --> Application
+    Infrastructure --> Domain[Telemetry.Domain]
+    Application --> Domain
+    Infrastructure --> Mongo[(MongoDB – devhub_telemetry)]
+```
+
+| Проєкт | Вміст |
+| --- | --- |
+| `Telemetry.Domain` | `BaseEntity`, `ValueObject`, сутності `Discussion`, `Comment`, `CrashReport`, value objects `ExceptionInfo`, `StackFrame`, `PerformanceMetric`, доменні винятки, інтерфейси репозиторіїв |
+| `Telemetry.Application` | команди й запити з обробниками та валідаторами, behaviors, інтерфейси читання `IDiscussionQueries` і `ICrashReportQueries`, профіль AutoMapper, `DependencyInjection.cs` |
+| `Telemetry.Infrastructure` | `MongoDbContext`, мапінг `BsonClassMap`, репозиторії, реалізації інтерфейсів читання, сідінг, створення індексів, `DependencyInjection.cs` |
+| `Telemetry.WebApi` | контролери, глобальний обробник помилок, `Program.cs`, `appsettings*.json` |
+| `Telemetry.Tests` | модульні тести домену, конвеєра валідації, мапінгу AutoMapper і BSON |
+
+Сервіс працює з колекціями `discussions` і `crashReports`. Документи мають ту саму структуру, що
+створюють скрипти `db/p3`: імена полів у camelCase, коментарі з відповідями вкладено в
+обговорення, а підсумки винятку, кадри стека й метрику – у звіт про збій. Для оптимістичної
+конкурентності валідатори обох колекцій у `db/p3/collections.js` отримали поля `updatedAt` і
+`version`. Скрипт дописує `version: 0` документам, де цього поля ще немає. Оновлення записується
+лише в документ з очікуваною версією.
+
+### Запуск
+
+Потрібні .NET SDK 9.0.318 і Docker Desktop.
+
+1. Запустіть MongoDB 8 у контейнері (той самий, що в розділі «Розгортання»; якщо контейнер уже
+   є, достатньо `docker start devhub-mongo`):
+
+   ```bash
+   docker run -d --name devhub-mongo -p 27017:27017 mongo:8
+   ```
+
+2. За бажанням розгорніть базу скриптами `db/p3` за розділом «Розгортання», тоді колекції матимуть
+   валідатори JSON Schema. Без цього кроку сервіс сам створить колекції, індекси й початкові дані.
+3. Збережіть ключ ліцензії Lucky Penny у user secrets. Один ключ покриває і MediatR, і AutoMapper;
+   без нього сервіс працює так само, лише пише в лог попередження.
+
+   ```bash
+   dotnet user-secrets set "LuckyPenny:LicenseKey" "<ключ>" --project Services/Telemetry/Telemetry.WebApi
+   ```
+
+4. Запустіть API:
+
+   ```bash
+   dotnet run --project Services/Telemetry/Telemetry.WebApi --launch-profile https
+   ```
+
+5. Відкрийте `https://localhost:7180/swagger`.
+
+Під час старту `IndexCreationService` створює складені, унікальний, текстовий і TTL-індекси з тими
+самими назвами, що в `db/p3/collections.js`, тож сервіс і скрипт можна застосовувати до однієї бази.
+Після нього кожен `IDataSeeder` перевіряє, чи порожня його колекція, і лише тоді одним
+`InsertManyAsync` додає документи з `Telemetry.Infrastructure/Seeding/Data`. Повторний запуск
+нічого не дублює. У середовищі Production сідінг не виконується.
+
+Рядок підключення й назву бази задає секція `MongoDb` в `appsettings.json`; для Development, Staging
+і Production є окремі файли `appsettings.{Environment}.json`. Розмір пулу з’єднань і таймаут вибору
+сервера записано в самому рядку (`maxPoolSize`, `serverSelectionTimeoutMS`). Змінна оточення
+`MongoDb__ConnectionString` має пріоритет над файлом. Стан підключення до MongoDB повертає
+`GET /health`.
+
+### Приклади запитів (curl)
+
+```bash
+API=https://localhost:7180
+
+curl -i "$API/api/discussions?state=open&page=1&pageSize=5"
+
+curl -i -X POST $API/api/discussions -H "Content-Type: application/json" \
+  -d '{"packageId":5,"packageKey":"platform-team/devhub-logging","packageName":"devhub-logging","publisherSlug":"platform-team","title":"Structured scopes are dropped by the console sink","category":"bug","openedBy":"o.kovalenko"}'
+
+curl -i -X POST $API/api/discussions -H "Content-Type: application/json" \
+  -d '{"packageId":0,"packageKey":"platform-team/devhub-logging","packageName":"devhub-logging","publisherSlug":"platform-team","title":"Structured scopes are dropped by the console sink","category":"bug","openedBy":"o.kovalenko"}'
+
+curl -i -X PUT $API/api/discussions/<id> -H "Content-Type: application/json" \
+  -d '{"title":"Structured scopes are dropped by the console sink","category":"bug","labels":["sink"],"version":0}'
+
+curl -i "$API/api/crash-reports?severity=high"
+```
+
+Перший `POST` повертає 201 і заголовок `Location` з ObjectId у вигляді рядка. Якщо повторити його,
+асинхронне правило валідатора знайде таку саму назву в пакета й поверне 400. Запит із
+`packageId: 0` відхиляється ще до обробника: у лозі є рядок `Handling CreateDiscussionCommand` і
+попередження про `ValidationException`, а рядка `Handled` немає. Перший `PUT` з `version: 0` повертає
+обговорення з версією 1, той самий `PUT` удруге дає 409.
+
+| Ситуація | Статус |
+| --- | --- |
+| `NotFoundException` – документа немає | 404 |
+| `ValidationException` FluentValidation, зокрема некоректний ObjectId | 400 |
+| `DomainException` – порушено правило сутності, наприклад коментар у закритому обговоренні | 400 |
+| `ConflictException` – документ уже змінено, версія застаріла | 409 |
+| `MongoWriteException` з DuplicateKey – порушено унікальний індекс | 409 |
+| інша помилка запису MongoDB, наприклад відмова валідатора колекції | 400 |
+| `MongoConnectionException` або таймаут вибору сервера | 503 |
+| будь-яка інша помилка | 500 |
+
+### Знімки екрана
+
+Перелік ендпоінтів API у Swagger:
+
+![Swagger: ендпоінти Telemetry.WebApi](docs/screenshots/telemetry-swagger.png)
+
+Документ `discussions` у MongoDB Compass, записаний сідінгом сервісу: поля в camelCase, вкладені
+коментарі з відповідями й реакціями, поле `version`, без службових полів .NET:
+
+![Compass: документ колекції discussions](docs/screenshots/telemetry-compass-document.png)
+
+Результат `db.discussions.getIndexes()` у вбудованій оболонці Compass:
+
+![Compass: результат db.discussions.getIndexes()](docs/screenshots/telemetry-get-indexes.png)
