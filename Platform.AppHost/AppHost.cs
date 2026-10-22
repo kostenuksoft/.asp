@@ -24,13 +24,18 @@ IResourceBuilder<MongoDBServerResource> mongo = builder.AddMongoDB("mongo")
 
 IResourceBuilder<MongoDBDatabaseResource> telemetryDb = mongo.AddDatabase("TelemetryDb", "devhub_telemetry");
 
+IResourceBuilder<RedisResource> redis = builder.AddRedis("redis")
+    .WithDataVolume();
+
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
     .WaitFor(cicdDb);
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
     .WithReference(registryDb)
-    .WaitFor(registryDb);
+    .WaitFor(registryDb)
+    .WithReference(redis)
+    .WaitFor(redis);
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
     .WithReference(telemetryDb)
@@ -40,9 +45,11 @@ IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platf
     .WithReference(cicd)
     .WithReference(registry)
     .WithReference(telemetry)
+    .WithReference(redis)
     .WaitFor(cicd)
     .WaitFor(registry)
-    .WaitFor(telemetry);
+    .WaitFor(telemetry)
+    .WaitFor(redis);
 
 builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WithHttpEndpoint(port: 5000, name: "public")
