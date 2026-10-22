@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option csharp_namespace = "Registry.Grpc";
+
+package devhub.registry;
+
+service RegistryService {
+  rpc GetPackage (GetPackageRequest) returns (PackageReply);
+  rpc GetPackagesByIds (GetPackagesByIdsRequest) returns (PackagesReply);
+}
+
+message GetPackageRequest {
+  int64 package_id = 1;
+}
+
+message GetPackagesByIdsRequest {
+  repeated int64 package_ids = 1;
+}
+
+message PackageReply {
+  int64 package_id = 1;
+  string publisher_slug = 2;
+  string name = 3;
+  optional string description = 4;
+  DecimalValue license_price = 5;
+  int64 download_count = 6;
+  bool is_listed = 7;
+}
+
+message PackagesReply {
+  repeated PackageReply packages = 1;
+}
+
+message DecimalValue {
+  int64 units = 1;
+  sfixed32 nanos = 2;
+}

@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option csharp_namespace = "Cicd.Grpc";
+
+package devhub.cicd;
+
+import "google/protobuf/timestamp.proto";
+
+service CicdService {
+  rpc GetRunTimeline (GetRunTimelineRequest) returns (RunTimelineReply);
+}
+
+message GetRunTimelineRequest {
+  int64 build_run_id = 1;
+}
+
+message RunTimelineReply {
+  int64 build_run_id = 1;
+  string pipeline_name = 2;
+  int32 run_number = 3;
+  string status = 4;
+  string branch_name = 5;
+  string commit_sha = 6;
+  google.protobuf.Timestamp queued_at = 7;
+  google.protobuf.Timestamp finished_at = 8;
+  optional int32 duration_seconds = 9;
+  repeated RunArtifact artifacts = 10;
+}
+
+message RunArtifact {
+  string usage_kind = 1;
+  int64 package_id = 2;
+  string package_key = 3;
+  string sem_ver = 4;
+}
