@@ -6,6 +6,7 @@ using Telemetry.Application.Common.Mappings;
 using Telemetry.Infrastructure;
 using Telemetry.Infrastructure.Persistence;
 using Telemetry.WebApi.ErrorHandling;
+using Telemetry.WebApi.Grpc;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +37,7 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))
 );
+builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -53,6 +55,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGrpcService<TelemetryGrpcService>();
 app.MapDefaultEndpoints();
 
 await app.RunAsync();

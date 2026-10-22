@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Platform.ServiceDefaults;
 using Registry.Api.ErrorHandling;
+using Registry.Api.Grpc;
 using Registry.Bll.Services;
 using Registry.Bll.Services.Interfaces;
 using Registry.Dal;
@@ -37,6 +38,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddControllers();
+builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -65,6 +67,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGrpcService<RegistryGrpcService>();
 app.MapDefaultEndpoints();
 
 await app.RunAsync();
