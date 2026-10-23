@@ -21,6 +21,7 @@ public static class Extensions
     private const string AlivenessEndpointPath = "/alive";
     private const string MongoDbActivitySource = "MongoDB.Driver.Core.Extensions.DiagnosticSources";
     private const string SamplingRatioKey = "OpenTelemetry:SamplingRatio";
+    private const string RegistryCacheMeter = "Registry.Cache";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -82,6 +83,7 @@ public static class Extensions
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
+                .AddMeter(RegistryCacheMeter)
             )
             .WithTracing(tracing => tracing
                 .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(samplingRatio)))
