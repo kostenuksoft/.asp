@@ -1,18 +1,27 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Cicd.Grpc;
 using Microsoft.Extensions.Http.Resilience;
-using Platform.Aggregator.Clients;
 using Platform.Aggregator.ErrorHandling;
 using Platform.Aggregator.Services;
 using Platform.ServiceDefaults;
+using Registry.Grpc;
+using StackExchange.Redis;
+using Telemetry.Grpc;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddHttpClient<CicdClient>(client => client.BaseAddress = new("https+http://cicd-api"));
-builder.Services.AddHttpClient<RegistryClient>(client => client.BaseAddress = new("https+http://registry-api"));
-builder.Services.AddHttpClient<TelemetryClient>(client => client.BaseAddress = new("https+http://telemetry-api"));
+builder.Services.AddGrpcClient<CicdService.CicdServiceClient>(options => options.Address = new Uri("https://cicd-api"));
+builder.Services.AddGrpcClient<RegistryService.RegistryServiceClient>(options => options.Address = new Uri("https://registry-api"));
+builder.Services.AddGrpcClient<TelemetryService.TelemetryServiceClient>(options => options.Address = new Uri("https://telemetry-api"));
+builder.AddRedisDistributedCache("redis", configureOptions: options =>
+{
+    options.BacklogPolicy = BacklogPolicy.FailFast;
+    options.AsyncTimeout = 1000;
+    options.SyncTimeout = 1000;
+});
 builder.Services.ConfigureAll<HttpStandardResilienceOptions>(options =>
 {
     options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(2);
