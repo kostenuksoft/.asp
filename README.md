@@ -28,6 +28,26 @@ DevHub – внутрішня платформа розробників одні
 `versionKey` = `"<publisher>/<package>@<semver>"`, `runKey` = `"<pipeline>#<run number>"`. Це
 дубльовані поля, тож кожне з них є в таблиці нижче.
 
+## Політики стійкості клієнтів Aggregator
+
+Агрегатор викликає три сервіси через gRPC, і кожен клієнт має власну політику. Критичні сервіси –
+`cicd-api` і `registry-api`: без хронології запуску картки немає зовсім, а реєстр дає дані пакетів,
+заради яких картку відкривають. Некритичний – `telemetry-api`. Без обговорень і звітів про збої
+картка все одно приходить, лише з попередженням, тому його клієнт здається швидко.
+
+| Клієнт | gRPC-повтори | HTTP-повтори | Circuit breaker | Таймаути | Чому так |
+| --- | --- | --- | --- | --- | --- |
+| `cicd-api`, `registry-api` | 4 спроби, затримка 0,2 → 2 с | 2, від 0,2 с, експоненційно, з jitter | частка збоїв 0,3, мінімум 5 викликів за 10 с, розмикання на 15 с | спроба 2 с, HTTP-виклик 7 с, дедлайн gRPC 10 с | без цих даних картки немає: більше повторів і чутливіший breaker |
+| `telemetry-api` | 2 спроби, затримка 0,2 с | 1, від 0,2 с, експоненційно, з jitter | частка збоїв 0,7, мінімум 5 викликів за 10 с, розмикання на 30 с | спроба 1 с, HTTP-виклик 2,5 с, дедлайн gRPC 3 с | картка без нього часткова: клієнт здається за 2 с, breaker терпить більше збоїв |
+
+Повтори двох рівнів не множаться. HTTP-обробник повторює таймаути й мережеві збої, а gRPC-канал –
+виклики, на які сервіс відповів статусом `Unavailable` чи `ResourceExhausted`. Таймаут спроби канал
+отримує як статус `Internal` і вдруге його не повторює; дедлайн обмежує весь виклик разом з
+повторами. Повторюються лише читання: усі виклики агрегатора читають дані, хоч gRPC і передає їх
+методом POST, тому повтори вимкнено для PUT, PATCH і DELETE. `MinimumThroughput` має значення 5, бо
+навчальний стенд не дає 100 викликів за 30 секунд. Код політик лежить у
+`Platform.Aggregator/Resilience/`, а перевірку описано в розділі «Стійкість, метрики й health checks».
+
 ## Політика дублювання
 
 | Поле | Де зберігається | Джерело (власник даних) | Політика узгодженості |
@@ -502,7 +522,7 @@ flowchart TB
 сервера записано в самому рядку (`maxPoolSize`, `serverSelectionTimeoutMS`). Змінна оточення
 `MongoDb__ConnectionString` має пріоритет над файлом. Під AppHost рядок підключення приходить як
 `ConnectionStrings:TelemetryDb` і замінює значення із секції `MongoDb`. Стан підключення до MongoDB
-повертає `GET /health`.
+показує перевірка `telemetry-db` у відповіді `GET /health/ready`.
 
 ### Приклади запитів (curl)
 
@@ -711,10 +731,10 @@ JSON іде в camelCase, а поля зі значенням null агрега�
 2. Повторіть запит картки запуску 1.
 3. Запустіть ресурс знову (Start) – наступна відповідь знову повна.
 
-Політики стійкості клієнтів агрегатора задано в його `Program.cs`: спроба обмежена 2 секундами,
-повтор один, увесь виклик – 5 секунд. Крім того, кожен gRPC-виклик має дедлайн 3 секунди, тому поки
-сервіс зупинено, картка приходить приблизно за 3 секунди. Недоступність `cicd-api` дає 503, бо без
-запуску картки не існує.
+Політики стійкості клієнтів агрегатора описує розділ «Політики стійкості клієнтів Aggregator» на
+початку README. Поки `telemetry-api` зупинено, перша картка приходить приблизно за 2 секунди, а після
+кількох невдалих викликів circuit breaker відхиляє їх одразу, і картка повертається за десятки
+мілісекунд. Недоступність `cicd-api` дає 503, бо без запуску картки не існує.
 
 ### Логування й трасування
 
@@ -838,7 +858,8 @@ Gateway → Aggregator → сервіси → бази даних, і викли
 Агрегатор реєструє клієнти через `AddGrpcClient` з адресами `https://cicd-api`,
 `https://registry-api` і `https://telemetry-api`. Їх створює та сама фабрика HttpClient, тож service
 discovery, політики стійкості й `CorrelationIdHandler` діють і для gRPC, а `X-Correlation-Id` іде в
-метаданих кожного виклику. Кожен виклик має дедлайн 3 секунди й `CancellationToken`. Статуси
+метаданих кожного виклику. Кожен виклик має `CancellationToken` і дедлайн, узгоджений з політикою
+сервісу: 10 секунд для критичних, 3 – для некритичного. Статуси
 `Unavailable` і `DeadlineExceeded` перетворюються на попередження в картці, а не на 500.
 
 Перед будь-яким викликом агрегатор шукає картку в Redis за ключем `aggregator:build-run:{id}:full`.
@@ -853,8 +874,7 @@ discovery, політики стійкості й `CorrelationIdHandler` дію�
 `CacheMetrics` публікує в метрі `Registry.Cache` лічильники `cache.hits` і `cache.misses` з тегом
 `cache.level` (L1 або L2) та `cache.invalidations` з причиною. `Platform.ServiceDefaults` додає цей
 метр до OpenTelemetry, і лічильники видно у вкладці Metrics ресурсу `registry-api`. Health check
-`memory-cache` показує кількість записів, попадань і промахів L1 у відповіді `/health`, яку
-сервіс віддає в Development.
+`memory-cache` показує кількість записів, попадань і промахів L1 у відповіді `/health`.
 
 ![Метрика cache.hits ресурсу registry-api з тегом cache.level](docs/screenshots/cache-hits-metric.png)
 
@@ -876,3 +896,89 @@ discovery, політики стійкості й `CorrelationIdHandler` дію�
 навантаженням: HTTP/2 пропускає всі виклики до одного сервісу через одне з’єднання, і gRPC дає на
 18–60 % більше карток за секунду, а p95 нижчий на 26–52 %. Частину виграшу дає кеш у пам’яті реєстру:
 у попередній версії його не було.
+
+## Стійкість, метрики й health checks
+
+### Політики стійкості
+
+`Platform.ServiceDefaults` додає Standard Resilience Handler до кожного `HttpClient` через
+`ConfigureHttpClientDefaults`, а gRPC-клієнти створює та сама фабрика. Клієнти агрегатора мають власні
+налаштування, тож кожен спершу прибирає стандартний обробник викликом `RemoveAllResilienceHandlers()`
+і лише потім додає свій; два обробники на одному клієнті не нашаровуються, а значення, що відрізняють
+критичні сервіси від некритичного, лежать у записі `ServicePolicy` (`Critical` і `NonCritical`), звідки
+`ResilienceExtensions` переносить їх у Polly й у `ServiceConfig` gRPC-каналу. Розмикання ланцюга записується в лог з рівнем Error, напіввідкритий і
+закритий стан – з рівнем Information. Метр `Polly` підключено в `Platform.ServiceDefaults`, тому
+повтори, таймаути й переходи circuit breaker видно в метриці `resilience.polly.strategy.events` з
+тегом `event.name`. Обґрунтування значень – у таблиці на початку README.
+
+Redis лишається необов’язковою залежністю. Помилку Redis кеш реєстру й агрегатор записують як
+попередження й читають дані з бази або із сервісів (розділ «Якщо Redis недоступний»).
+
+### Бізнес-метрики
+
+| Метр | Інструмент | Тип | Теги |
+| --- | --- | --- | --- |
+| `Cicd.Api` | `build_runs.queued` | лічильник | `trigger.kind` |
+| `Cicd.Api` | `build_runs.completed` | лічильник | `run.status` |
+| `Cicd.Api` | `build_runs.operation.duration`, мс | гістограма | `operation`, `status` |
+| `Registry.Api` | `packages.created`, `packages.license_price_changed` | лічильники | `license.kind` (`free`, `commercial`) |
+| `Registry.Api` | `packages.operation.duration`, мс | гістограма | `operation`, `status` |
+| `Registry.Api` | `registry.cache.entries` | `ObservableGauge` | – |
+| `Telemetry.WebApi` | `discussions.created` | лічильник | `discussion.category` |
+| `Telemetry.WebApi` | `discussions.operation.duration`, мс | гістограма | `operation`, `status` |
+
+Класи метрик лежать у папках `Metrics` сервісів і зареєстровані як Singleton. Кожен створює метр
+через `IMeterFactory` з назвою свого сервісу, а `Platform.ServiceDefaults` підключає метр за назвою
+застосунку. Лічильник зростає одразу після успішної операції. Тривалість контролер записує в обох
+випадках: і коли операція вдалася, і коли закінчилася винятком (`status` = `success` або `failure`).
+Gauge читає кількість записів кешу L1 у момент збору метрик, не опитуючи базу. Теги мають кілька можливих значень і
+ніколи не містять ідентифікаторів, щоб не плодити часових рядів.
+
+### Health checks
+
+| Сервіс | Перевірка | Статус збою | Теги |
+| --- | --- | --- | --- |
+| `cicd-api` | `cicd-db` (`SELECT 1`), `agent-pool` (є вільний агент) | Unhealthy, Degraded | `database`, `sql`, `ready`; `ready` |
+| `registry-api` | `registry-db` (`SELECT 1`), `redis-cache` (`PING`) | Unhealthy, Degraded | `database`, `sql`, `ready`; `cache`, `redis`, `ready` |
+| `telemetry-api` | `telemetry-db` (ping) | Unhealthy | `database`, `mongodb`, `ready` |
+| `aggregator` | `cicd-api`, `registry-api`, `telemetry-api` (gRPC Health), `redis-cache` | Unhealthy, Unhealthy, Degraded, Degraded | `grpc`, `downstream`, `ready`; `cache`, `redis`, `ready` |
+
+Таймаут перевірок баз даних – 5 секунд, Redis – 3, gRPC-перевірки агрегатора – 2. Кожен сервіс
+відповідає за стандартним gRPC Health Checking Protocol (`AddGrpcHealthChecks`,
+`MapGrpcHealthChecksService`). Його статус залежить лише від перевірок з тегом `database`, тож
+зупинений Redis не робить сервіс недоступним для агрегатора. `GrpcDependencyHealthCheck` в агрегаторі
+викликає `Health.HealthClient.Check` з коротким дедлайном, а `RpcException` записує в лог.
+
+`MapDefaultEndpoints()` публікує ендпоінти в будь-якому середовищі:
+
+| Ендпоінт | Що перевіряє | Відповідь |
+| --- | --- | --- |
+| `/health/live` | лише сам процес (перевірка `self` з тегом `live`) | `Healthy` |
+| `/health/ready` | перевірки з тегом `ready` | JSON зі статусом, тривалістю й даними кожної перевірки |
+| `/health` | усі перевірки | той самий JSON |
+
+`AppHost.cs` додає `WithHttpHealthCheck("/health/ready")` до трьох сервісів, агрегатора й Gateway.
+Dashboard показує стан кожного ресурсу, а `WaitFor` чекає готовності залежності, а не лише запуску.
+
+### Перевірка
+
+1. У Dashboard зупиніть `telemetry-api` (Stop) і кілька разів запросіть картку запуску 1. Перша
+   картка приходить приблизно за 2 секунди, наступні – за 20 мс із попередженням: circuit breaker
+   розімкнувся. У Structured logs є запис «Circuit for telemetry-api (non-critical) opened», у Metrics
+   агрегатора `resilience.polly.strategy.events` показує `OnRetry`, `OnTimeout` і `OnCircuitOpened`.
+   Після Start і 30 секунд розмикання картка знову повна.
+2. Зупиніть `redis`. `GET /health/ready` у `registry-api` повертає 200 зі статусом `Degraded`, а
+   запити до пакетів і картки обробляються далі.
+3. Зупиніть `sql`. `GET /health/live` відповідає 200, а `GET /health/ready` у `cicd-api` і
+   `registry-api` – 503.
+4. Поставте в чергу кілька запусків (`POST /api/build-runs`). У Metrics ресурсу `cicd-api` лічильник
+   `build_runs.queued` зростає з фільтром за `trigger.kind`, а `build_runs.operation.duration`
+   показує розподіл тривалостей.
+
+![Метрика resilience.polly.strategy.events з подіями OnCircuitOpened, OnRetry і OnTimeout](docs/screenshots/resilience-polly-events.png)
+
+![Бізнес-метрика build_runs.queued з фільтром trigger.kind](docs/screenshots/business-metric-queued.png)
+
+![Відповідь /health/ready з Degraded при зупиненому Redis](docs/screenshots/health-ready-degraded.png)
+
+![Resources: сервіси зі станом Unhealthy при зупиненому SQL Server](docs/screenshots/resources-health.png)
