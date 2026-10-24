@@ -29,17 +29,20 @@ IResourceBuilder<RedisResource> redis = builder.AddRedis("redis")
 
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
-    .WaitFor(cicdDb);
+    .WaitFor(cicdDb)
+    .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
     .WithReference(registryDb)
     .WaitFor(registryDb)
     .WithReference(redis)
-    .WaitFor(redis);
+    .WaitFor(redis)
+    .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
     .WithReference(telemetryDb)
-    .WaitFor(telemetryDb);
+    .WaitFor(telemetryDb)
+    .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator")
     .WithReference(cicd)
@@ -49,7 +52,8 @@ IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platf
     .WaitFor(cicd)
     .WaitFor(registry)
     .WaitFor(telemetry)
-    .WaitFor(redis);
+    .WaitFor(redis)
+    .WithHttpHealthCheck("/health/ready");
 
 builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WithHttpEndpoint(port: 5000, name: "public")
@@ -57,6 +61,7 @@ builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WithReference(registry)
     .WithReference(telemetry)
     .WithReference(aggregator)
-    .WaitFor(aggregator);
+    .WaitFor(aggregator)
+    .WithHttpHealthCheck("/health/ready");
 
 builder.Build().Run();
