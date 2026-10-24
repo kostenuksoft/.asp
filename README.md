@@ -591,9 +591,9 @@ flowchart LR
     Gateway --> Registry[registry-api]
     Gateway --> Telemetry[telemetry-api]
     Gateway --> Aggregator[aggregator]
-    Aggregator -. gRPC, Task.WhenAll .-> Cicd
-    Aggregator -. gRPC, Task.WhenAll .-> Registry
-    Aggregator -. gRPC, Task.WhenAll .-> Telemetry
+    Aggregator -.->|gRPC, Task.WhenAll| Cicd
+    Aggregator -.->|gRPC, Task.WhenAll| Registry
+    Aggregator -.->|gRPC, Task.WhenAll| Telemetry
     Cicd --> CicdDb[(SQL Server – CicdDb)]
     Registry --> RegistryDb[(SQL Server – RegistryDb)]
     Telemetry --> TelemetryDb[(MongoDB – TelemetryDb)]
