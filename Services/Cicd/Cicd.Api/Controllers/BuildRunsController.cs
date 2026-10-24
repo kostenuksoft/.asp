@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Cicd.Api.Metrics;
 using Cicd.Bll.Dtos;
 using Cicd.Bll.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -7,8 +9,11 @@ namespace Cicd.Api.Controllers;
 [ApiController]
 [Route("api/build-runs")]
 [Produces("application/json")]
-public sealed class BuildRunsController(IBuildRunService buildRuns) : ControllerBase
+public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics metrics) : ControllerBase
 {
+    private const string QueueOperation = "queue";
+    private const string CompleteOperation = "complete";
+
     [HttpGet("{id:long}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -35,8 +40,20 @@ public sealed class BuildRunsController(IBuildRunService buildRuns) : Controller
         CancellationToken cancellationToken
     )
     {
-        BuildRunDto queued = await buildRuns.QueueAsync(input, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = queued.BuildRunId }, queued);
+        ArgumentNullException.ThrowIfNull(input);
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        try
+        {
+            BuildRunDto queued = await buildRuns.QueueAsync(input, cancellationToken);
+            metrics.RunQueued(input.TriggerKind);
+            metrics.RecordDuration(QueueOperation, success: true, stopwatch.Elapsed.TotalMilliseconds);
+            return CreatedAtAction(nameof(GetById), new { id = queued.BuildRunId }, queued);
+        }
+        catch (Exception) when (RecordFailure(QueueOperation, stopwatch))
+        {
+            throw;
+        }
     }
 
     [HttpPost("{id:long}/start")]
@@ -74,7 +91,21 @@ public sealed class BuildRunsController(IBuildRunService buildRuns) : Controller
         long id,
         CompleteBuildRunDto input,
         CancellationToken cancellationToken
-    ) => Ok(await buildRuns.CompleteAsync(id, input, cancellationToken));
+    )
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        try
+        {
+            RunTimelineDto timeline = await buildRuns.CompleteAsync(id, input, cancellationToken);
+            metrics.RunCompleted(timeline.Status);
+            metrics.RecordDuration(CompleteOperation, success: true, stopwatch.Elapsed.TotalMilliseconds);
+            return Ok(timeline);
+        }
+        catch (Exception) when (RecordFailure(CompleteOperation, stopwatch))
+        {
+            throw;
+        }
+    }
 
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -87,5 +118,14 @@ public sealed class BuildRunsController(IBuildRunService buildRuns) : Controller
     {
         await buildRuns.DeleteAsync(id, cancellationToken);
         return NoContent();
+    }
+
+    private bool RecordFailure(
+        string operation,
+        Stopwatch stopwatch
+    )
+    {
+        metrics.RecordDuration(operation, success: false, stopwatch.Elapsed.TotalMilliseconds);
+        return false;
     }
 }

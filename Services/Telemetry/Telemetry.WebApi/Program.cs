@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Platform.ServiceDefaults;
 using Telemetry.Application;
 using Telemetry.Application.Common.Mappings;
@@ -7,6 +8,7 @@ using Telemetry.Infrastructure;
 using Telemetry.Infrastructure.Persistence;
 using Telemetry.WebApi.ErrorHandling;
 using Telemetry.WebApi.Grpc;
+using Telemetry.WebApi.Metrics;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -37,7 +39,21 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))
 );
+builder.Services.AddSingleton<TelemetryMetrics>();
+
+builder.Services.AddHealthChecks()
+    .AddMongoDb(
+        provider => provider.GetRequiredService<MongoDbContext>().Database,
+        name: "telemetry-db",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["database", "mongodb", "ready"],
+        timeout: TimeSpan.FromSeconds(5)
+    );
+
 builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
+builder.Services.AddGrpcHealthChecks(options =>
+    options.Services.Map(string.Empty, registration => registration.Tags.Contains("database"))
+);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -56,6 +72,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGrpcService<TelemetryGrpcService>();
+app.MapGrpcHealthChecksService();
 app.MapDefaultEndpoints();
 
 await app.RunAsync();

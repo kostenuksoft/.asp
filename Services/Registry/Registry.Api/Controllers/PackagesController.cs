@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
+using Registry.Api.Metrics;
 using Registry.Bll.Dtos;
 using Registry.Bll.Services.Interfaces;
 
@@ -13,10 +15,14 @@ public sealed class PackagesController(
     IPackageService packages,
     IValidator<PackageQuery> queryValidator,
     IValidator<CreatePackageDto> createValidator,
-    IValidator<ChangeLicensePriceDto> licensePriceValidator
+    IValidator<ChangeLicensePriceDto> licensePriceValidator,
+    RegistryMetrics metrics
 )
     : ControllerBase
 {
+    private const string CreateOperation = "create";
+    private const string ChangeLicensePriceOperation = "change_license_price";
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -65,8 +71,18 @@ public sealed class PackagesController(
             return ValidationProblem(new ValidationProblemDetails(result.ToDictionary()));
         }
 
-        PackageDto created = await packages.CreateAsync(input, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = created.PackageId }, created);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        try
+        {
+            PackageDto created = await packages.CreateAsync(input, cancellationToken);
+            metrics.PackageCreated(created.LicensePrice);
+            metrics.RecordDuration(CreateOperation, success: true, stopwatch.Elapsed.TotalMilliseconds);
+            return CreatedAtAction(nameof(GetById), new { id = created.PackageId }, created);
+        }
+        catch (Exception) when (RecordFailure(CreateOperation, stopwatch))
+        {
+            throw;
+        }
     }
 
     [HttpPut("{id:long}/license-price")]
@@ -79,14 +95,26 @@ public sealed class PackagesController(
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         ValidationResult result = await licensePriceValidator.ValidateAsync(input, cancellationToken);
         if (!result.IsValid)
         {
             return ValidationProblem(new ValidationProblemDetails(result.ToDictionary()));
         }
 
-        await packages.ChangeLicensePriceAsync(id, input, cancellationToken);
-        return NoContent();
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        try
+        {
+            await packages.ChangeLicensePriceAsync(id, input, cancellationToken);
+            metrics.LicensePriceChanged(input.LicensePrice);
+            metrics.RecordDuration(ChangeLicensePriceOperation, success: true, stopwatch.Elapsed.TotalMilliseconds);
+            return NoContent();
+        }
+        catch (Exception) when (RecordFailure(ChangeLicensePriceOperation, stopwatch))
+        {
+            throw;
+        }
     }
 
     [HttpPost("{id:long}/downloads")]
@@ -155,5 +183,14 @@ public sealed class PackagesController(
     {
         await packages.DeleteAsync(id, cancellationToken);
         return NoContent();
+    }
+
+    private bool RecordFailure(
+        string operation,
+        Stopwatch stopwatch
+    )
+    {
+        metrics.RecordDuration(operation, success: false, stopwatch.Elapsed.TotalMilliseconds);
+        return false;
     }
 }

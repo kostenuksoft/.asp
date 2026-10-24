@@ -1,8 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Cicd.Grpc;
-using Microsoft.Extensions.Http.Resilience;
+using Grpc.Health.V1;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Platform.Aggregator.ErrorHandling;
+using Platform.Aggregator.HealthChecks;
+using Platform.Aggregator.Resilience;
 using Platform.Aggregator.Services;
 using Platform.ServiceDefaults;
 using Registry.Grpc;
@@ -13,21 +16,61 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddGrpcClient<CicdService.CicdServiceClient>(options => options.Address = new Uri("https://cicd-api"));
-builder.Services.AddGrpcClient<RegistryService.RegistryServiceClient>(options => options.Address = new Uri("https://registry-api"));
-builder.Services.AddGrpcClient<TelemetryService.TelemetryServiceClient>(options => options.Address = new Uri("https://telemetry-api"));
-builder.AddRedisDistributedCache("redis", configureOptions: options =>
-{
-    options.BacklogPolicy = BacklogPolicy.FailFast;
-    options.AsyncTimeout = 1000;
-    options.SyncTimeout = 1000;
-});
-builder.Services.ConfigureAll<HttpStandardResilienceOptions>(options =>
-{
-    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(2);
-    options.Retry.MaxRetryAttempts = 1;
-    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(5);
-});
+builder.Services.AddGrpcClient<CicdService.CicdServiceClient>(options => options.Address = new Uri("https://cicd-api"))
+    .WithGrpcRetry(ServicePolicy.Critical)
+    .WithServicePolicy("cicd-api", ServicePolicy.Critical);
+builder.Services.AddGrpcClient<RegistryService.RegistryServiceClient>(options => options.Address = new Uri("https://registry-api"))
+    .WithGrpcRetry(ServicePolicy.Critical)
+    .WithServicePolicy("registry-api", ServicePolicy.Critical);
+builder.Services.AddGrpcClient<TelemetryService.TelemetryServiceClient>(options => options.Address = new Uri("https://telemetry-api"))
+    .WithGrpcRetry(ServicePolicy.NonCritical)
+    .WithServicePolicy("telemetry-api", ServicePolicy.NonCritical);
+
+builder.Services.AddGrpcClient<Health.HealthClient>("cicd-api", options => options.Address = new Uri("https://cicd-api"));
+builder.Services.AddGrpcClient<Health.HealthClient>("registry-api", options => options.Address = new Uri("https://registry-api"));
+builder.Services.AddGrpcClient<Health.HealthClient>("telemetry-api", options => options.Address = new Uri("https://telemetry-api"));
+
+builder.AddRedisDistributedCache(
+    "redis",
+    settings => settings.DisableHealthChecks = true,
+    options =>
+    {
+        options.BacklogPolicy = BacklogPolicy.FailFast;
+        options.AsyncTimeout = 1000;
+        options.SyncTimeout = 1000;
+    }
+);
+
+string redisConnectionString = builder.Configuration.GetConnectionString("redis")
+    ?? throw new InvalidOperationException("Connection string 'redis' is missing.");
+
+builder.Services.AddHealthChecks()
+    .AddTypeActivatedCheck<GrpcDependencyHealthCheck>(
+        "cicd-api",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["grpc", "downstream", "ready"],
+        args: "cicd-api"
+    )
+    .AddTypeActivatedCheck<GrpcDependencyHealthCheck>(
+        "registry-api",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["grpc", "downstream", "ready"],
+        args: "registry-api"
+    )
+    .AddTypeActivatedCheck<GrpcDependencyHealthCheck>(
+        "telemetry-api",
+        failureStatus: HealthStatus.Degraded,
+        tags: ["grpc", "downstream", "ready"],
+        args: "telemetry-api"
+    )
+    .AddRedis(
+        redisConnectionString: redisConnectionString,
+        name: "redis-cache",
+        failureStatus: HealthStatus.Degraded,
+        tags: ["cache", "redis", "ready"],
+        timeout: TimeSpan.FromSeconds(3)
+    );
+
 builder.Services.AddScoped<BuildRunCardService>();
 
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>

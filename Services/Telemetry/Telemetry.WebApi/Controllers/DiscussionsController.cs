@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -11,12 +12,15 @@ using Telemetry.Application.Discussions.Queries.GetDiscussionById;
 using Telemetry.Application.Discussions.Queries.GetDiscussionsList;
 using Telemetry.Domain.Enums;
 using Telemetry.WebApi.Contracts;
+using Telemetry.WebApi.Metrics;
 
 namespace Telemetry.WebApi.Controllers;
 
 [Route("api/discussions")]
-public sealed class DiscussionsController(ISender sender) : ApiController(sender)
+public sealed class DiscussionsController(ISender sender, TelemetryMetrics metrics) : ApiController(sender)
 {
+    private const string CreateOperation = "create";
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -50,8 +54,20 @@ public sealed class DiscussionsController(ISender sender) : ApiController(sender
         CancellationToken cancellationToken
     )
     {
-        string id = await Sender.Send(command, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id }, id);
+        ArgumentNullException.ThrowIfNull(command);
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        try
+        {
+            string id = await Sender.Send(command, cancellationToken);
+            metrics.DiscussionCreated(command.Category);
+            metrics.RecordDuration(CreateOperation, success: true, stopwatch.Elapsed.TotalMilliseconds);
+            return CreatedAtAction(nameof(GetById), new { id }, id);
+        }
+        catch (Exception) when (RecordFailure(CreateOperation, stopwatch))
+        {
+            throw;
+        }
     }
 
     [HttpPut("{id}")]
@@ -124,5 +140,14 @@ public sealed class DiscussionsController(ISender sender) : ApiController(sender
     {
         await Sender.Send(new DeleteDiscussionCommand(id, version), cancellationToken);
         return NoContent();
+    }
+
+    private bool RecordFailure(
+        string operation,
+        Stopwatch stopwatch
+    )
+    {
+        metrics.RecordDuration(operation, success: false, stopwatch.Elapsed.TotalMilliseconds);
+        return false;
     }
 }

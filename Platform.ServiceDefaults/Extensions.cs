@@ -18,10 +18,14 @@ namespace Platform.ServiceDefaults;
 public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
-    private const string AlivenessEndpointPath = "/alive";
+    private const string LivenessEndpointPath = "/health/live";
+    private const string ReadinessEndpointPath = "/health/ready";
+    private const string LiveTag = "live";
+    private const string ReadyTag = "ready";
     private const string MongoDbActivitySource = "MongoDB.Driver.Core.Extensions.DiagnosticSources";
     private const string SamplingRatioKey = "OpenTelemetry:SamplingRatio";
     private const string RegistryCacheMeter = "Registry.Cache";
+    private const string PollyMeter = "Polly";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -83,7 +87,7 @@ public static class Extensions
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddMeter(RegistryCacheMeter)
+                .AddMeter(builder.Environment.ApplicationName, RegistryCacheMeter, PollyMeter)
             )
             .WithTracing(tracing => tracing
                 .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(samplingRatio)))
@@ -108,7 +112,7 @@ public static class Extensions
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.Services.AddHealthChecks()
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck("self", () => HealthCheckResult.Healthy(), [LiveTag]);
 
         return builder;
     }
@@ -117,18 +121,44 @@ public static class Extensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        if (app.Environment.IsDevelopment())
+        app.MapHealthChecks(HealthEndpointPath, new HealthCheckOptions
         {
-            app.MapHealthChecks(HealthEndpointPath);
-            app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-            {
-                Predicate = registration => registration.Tags.Contains("live"),
-            });
-        }
+            ResponseWriter = WriteHealthReportAsync,
+        });
+        app.MapHealthChecks(LivenessEndpointPath, new HealthCheckOptions
+        {
+            Predicate = registration => registration.Tags.Contains(LiveTag),
+        });
+        app.MapHealthChecks(ReadinessEndpointPath, new HealthCheckOptions
+        {
+            Predicate = registration => registration.Tags.Contains(ReadyTag),
+            ResponseWriter = WriteHealthReportAsync,
+        });
 
         return app;
     }
 
-    private static bool IsHealthRequest(PathString path) =>
-        path.StartsWithSegments(HealthEndpointPath) || path.StartsWithSegments(AlivenessEndpointPath);
+    private static Task WriteHealthReportAsync(
+        HttpContext context,
+        HealthReport report
+    )
+    {
+        var payload = new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 1),
+            checks = report.Entries.Select(entry => new
+            {
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                description = entry.Value.Description,
+                durationMs = Math.Round(entry.Value.Duration.TotalMilliseconds, 1),
+                tags = entry.Value.Tags,
+                data = entry.Value.Data,
+            }),
+        };
+        return context.Response.WriteAsJsonAsync(payload);
+    }
+
+    private static bool IsHealthRequest(PathString path) => path.StartsWithSegments(HealthEndpointPath);
 }
