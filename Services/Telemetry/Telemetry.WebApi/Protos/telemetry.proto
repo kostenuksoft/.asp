@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+option csharp_namespace = "Telemetry.Grpc";
+
+package devhub.telemetry;
+
+import "google/protobuf/timestamp.proto";
+
+service TelemetryService {
+  rpc GetDiscussions (PackageItemsRequest) returns (DiscussionsReply);
+  rpc GetCrashReports (PackageItemsRequest) returns (CrashReportsReply);
+}
+
+message PackageItemsRequest {
+  string package_key = 1;
+  int32 page_size = 2;
+}
+
+message DiscussionsReply {
+  int32 total_count = 1;
+  repeated DiscussionItem items = 2;
+}
+
+message DiscussionItem {
+  string id = 1;
+  string package_key = 2;
+  string title = 3;
+  string category = 4;
+  string state = 5;
+  int32 comment_count = 6;
+  google.protobuf.Timestamp opened_at = 7;
+}
+
+message CrashReportsReply {
+  int32 total_count = 1;
+  repeated CrashReportItem items = 2;
+}
+
+message CrashReportItem {
+  string id = 1;
+  string package_key = 2;
+  string kind = 3;
+  optional string severity = 4;
+  string fingerprint = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}

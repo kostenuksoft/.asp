@@ -4,4 +4,20 @@
     <ProjectReference Include="..\Platform.ServiceDefaults\Platform.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\Services\Cicd\Cicd.Api\Protos\cicd.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Services\Registry\Registry.Api\Protos\registry.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Services\Telemetry\Telemetry.WebApi\Protos\telemetry.proto" GrpcServices="Client" />
+  </ItemGroup>
+
 </Project>

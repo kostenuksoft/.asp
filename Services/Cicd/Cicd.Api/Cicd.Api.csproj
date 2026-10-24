@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Grpc.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\cicd.proto" GrpcServices="Server" />
   </ItemGroup>
 
 </Project>

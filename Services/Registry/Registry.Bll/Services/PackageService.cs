@@ -12,7 +12,7 @@ namespace Registry.Bll.Services;
 
 public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<PackageService> logger) : IPackageService
 {
-    private const int MaxTopPackages = 50;
+    internal const int MaxTopPackages = 50;
 
     private static readonly ActivitySource s_activitySource = new("Registry.Api");
 

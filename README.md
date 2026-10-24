@@ -571,20 +571,22 @@ flowchart LR
     Gateway --> Registry[registry-api]
     Gateway --> Telemetry[telemetry-api]
     Gateway --> Aggregator[aggregator]
-    Aggregator -. Task.WhenAll .-> Cicd
-    Aggregator -. Task.WhenAll .-> Registry
-    Aggregator -. Task.WhenAll .-> Telemetry
+    Aggregator -. gRPC, Task.WhenAll .-> Cicd
+    Aggregator -. gRPC, Task.WhenAll .-> Registry
+    Aggregator -. gRPC, Task.WhenAll .-> Telemetry
     Cicd --> CicdDb[(SQL Server – CicdDb)]
     Registry --> RegistryDb[(SQL Server – RegistryDb)]
     Telemetry --> TelemetryDb[(MongoDB – TelemetryDb)]
+    Registry --> Redis[(Redis)]
+    Aggregator --> Redis
 ```
 
 | Проєкт | Вміст |
 | --- | --- |
-| `Platform.AppHost` | `AppHost.cs`: контейнери SQL Server і MongoDB з томами даних, реєстрація сервісів, агрегатора й шлюзу з `WithReference` і `WaitFor` |
-| `Platform.ServiceDefaults` | `Extensions.cs` (Serilog, OpenTelemetry, health checks, service discovery, стійкість HttpClient), `CorrelationIdMiddleware`, `CorrelationIdHandler` |
+| `Platform.AppHost` | `AppHost.cs`: контейнери SQL Server, MongoDB і Redis з томами даних, реєстрація сервісів, агрегатора й шлюзу з `WithReference` і `WaitFor` |
+| `Platform.ServiceDefaults` | `Extensions.cs` (Serilog, OpenTelemetry, health checks, service discovery, стійкість HttpClient, метр `Registry.Cache`), `CorrelationIdMiddleware`, `CorrelationIdHandler`, `GrpcLoggingInterceptor` |
 | `Platform.ApiGateway` | маршрути YARP, логування маршрутизації, `Dockerfile` |
-| `Platform.Aggregator` | типізовані HTTP-клієнти трьох сервісів, політики стійкості, картка запуску збірки, обробка часткових відмов |
+| `Platform.Aggregator` | типізовані gRPC-клієнти трьох сервісів, кеш картки в Redis, політики стійкості, картка запуску збірки, обробка часткових відмов |
 
 Кожен сервіс посилається лише на `Platform.ServiceDefaults`, а AppHost – на всі сервіси, шлюз і
 агрегатор. На AppHost не посилається ніхто. У коді сервісів змінено тільки `Program.cs`: він на
@@ -614,10 +616,10 @@ flowchart LR
    ```
 
 6. Відкрийте Aspire Dashboard за посиланням із консолі й дочекайтеся статусу Running для всіх
-   одинадцяти ресурсів.
+   дванадцяти ресурсів.
 7. Надсилайте запити на Gateway: `http://localhost:5000`.
 
-Перший запуск завантажує образи SQL Server 2022 і MongoDB 8. Дані лежать у томах Docker, тому
+Перший запуск завантажує образи SQL Server 2022, MongoDB 8 і Redis. Дані лежать у томах Docker, тому
 після перезапуску бази лишаються. Том SQL Server запам’ятовує пароль першого запуску; щоб змінити
 пароль, видаліть том `platform.apphost-…-sql-data`. Порядок старту задають ланцюжки `WaitFor`:
 бази даних, потім сервіси, агрегатор і наостанок Gateway. Сервіси отримують рядки підключення
@@ -671,16 +673,14 @@ curl -i $GW/api/aggregator/build-runs/999/full
 ### Aggregator
 
 `GET /api/aggregator/build-runs/{id}/full` повертає картку запуску збірки. Спершу агрегатор читає
-хронологію запуску з `cicd-api`, бо без неї складати нічого. Далі для кожного пакета, який запуск
-зібрав, паралельно через `Task.WhenAll` запитує дані пакета з `registry-api`, а обговорення й звіти
-про збої – з `telemetry-api`. Кожен виклик пише в лог свою тривалість, а `CancellationToken` доходить
-до всіх викликів. До картки потрапляють лише пакети з артефактів цього запуску та обговорення саме цих
-пакетів.
+хронологію запуску з `cicd-api`, бо без неї складати нічого. Далі паралельно через `Task.WhenAll`
+запитує дані всіх пакетів запуску з `registry-api` одним викликом, а обговорення й звіти про збої
+кожного пакета – з `telemetry-api`. Кожен виклик пише в лог свою тривалість, а `CancellationToken`
+доходить до всіх викликів. До картки потрапляють лише пакети з артефактів цього запуску та обговорення
+саме цих пакетів.
 
-Клієнти `CicdClient`, `RegistryClient` і `TelemetryClient` зареєстровано через `AddHttpClient` з
-адресами `https+http://cicd-api`, `https+http://registry-api` і `https+http://telemetry-api`.
-`CorrelationIdHandler` із `Platform.ServiceDefaults` додає до кожного вихідного запиту той самий
-`X-Correlation-Id`.
+Сервіси агрегатор викликає через gRPC (розділ «gRPC і кешування» нижче). `CorrelationIdHandler` із
+`Platform.ServiceDefaults` додає до кожного вихідного виклику той самий `X-Correlation-Id`.
 
 ```json
 {
@@ -712,8 +712,9 @@ JSON іде в camelCase, а поля зі значенням null агрега�
 3. Запустіть ресурс знову (Start) – наступна відповідь знову повна.
 
 Політики стійкості клієнтів агрегатора задано в його `Program.cs`: спроба обмежена 2 секундами,
-повтор один, увесь виклик – 5 секунд. Тому поки сервіс зупинено, картка приходить приблизно за 5
-секунд. Недоступність `cicd-api` дає 503, бо без запуску картки не існує.
+повтор один, увесь виклик – 5 секунд. Крім того, кожен gRPC-виклик має дедлайн 3 секунди, тому поки
+сервіс зупинено, картка приходить приблизно за 3 секунди. Недоступність `cicd-api` дає 503, бо без
+запуску картки не існує.
 
 ### Логування й трасування
 
@@ -742,3 +743,136 @@ Gateway → Aggregator → сервіси → бази даних, і викли
 йдуть паралельно:
 
 ![Trace картки запуску: Gateway, Aggregator, три сервіси, SQL Server і MongoDB](docs/screenshots/platform-trace.png)
+
+## gRPC і кешування
+
+Реєстр пакетів читають значно частіше, ніж змінюють. Картку пакета запитує кожна картка запуску
+збірки, а змінюють її кілька операцій мейнтейнера. Тому дворівневий кеш додано в `registry-api`,
+внутрішні виклики агрегатора переведено з HTTP на gRPC, а готову картку запуску агрегатор зберігає
+в Redis.
+
+### Redis в AppHost
+
+`AppHost.cs` додає ресурс `redis` викликом `AddRedis("redis").WithDataVolume()`. Посилання на нього
+з `WaitFor` отримують `registry-api` і `aggregator`. Рядок підключення приходить у змінній
+`ConnectionStrings__redis`, тому адреси Redis в `appsettings.json` немає. Обидва застосунки реєструють
+`IDistributedCache` викликом `AddRedisDistributedCache("redis")`.
+
+### Дворівневий кеш реєстру
+
+Код кешу зібрано в `Services/Registry/Registry.Bll/Caching/`. `TwoLevelCache` спершу перевіряє
+`IMemoryCache` (рівень L1), потім Redis (рівень L2) і лише після двох промахів читає базу. Знайдене
+в Redis копіюється в L1; прочитане з бази записується спершу в Redis, потім у L1. У Redis DTO лежить
+як JSON із `System.Text.Json`. `AddMemoryCache` обмежує L1 до 1024 записів (`SizeLimit`), а
+кожен запис має `Size = 1`. TTL рівня L1 завжди коротший, ніж у L2, і `TwoLevelCache` перевіряє це
+під час кожного запису: інакше копія в пам’яті пережила б оновлення в Redis.
+
+| Ключ | Що зберігається | L1 | L2 |
+| --- | --- | --- | --- |
+| `registry:package:{id}` | картка пакета: `GET /api/packages/{id}`, gRPC `GetPackage` і `GetPackagesByIds` | ковзний 1 хв, абсолютний 2 хв | 10 хв |
+| `registry:tags` | довідник тегів, `GET /api/tags` | 5 хв | 1 год |
+| `registry:packages:top:{take}:v{версія}` | найпопулярніші пакети, `GET /api/packages/top` | 30 с | 2 хв |
+| `aggregator:build-run:{id}:full` | картка запуску в агрегаторі | – | 30 с |
+
+`CachedPackageService` і `CachedTagService` реалізують ті самі інтерфейси, що й `PackageService` та
+`TagService`, і викликають їх усередині. Контролери й gRPC-сервіс отримують кеш через DI, свого коду
+не змінюючи. Посторінковий пошук `GET /api/packages?…` не кешується: кожна комбінація фільтрів дала б
+окремий ключ, до якого майже ніхто не звертався б удруге. Лог фіксує кожен промах із ключем, а
+заповнення кешу – разом із розміром запису в байтах і TTL обох рівнів.
+
+### Інвалідація після запису
+
+Операції запису `CachedPackageService` спершу передає `PackageService`, а одразу після збереження
+видаляє ключ картки з L1 і з Redis. У лог іде ключ і причина: `LicensePriceChanged`,
+`DownloadsRegistered`, `PackageUnlisted`, `PackageRelisted`, `TagAssigned`, `PackageDeleted`.
+Списки найпопулярніших пакетів окремо не видаляються. Їхні ключі містять версію списків, а запис
+замінює її новою, тож старі ключі більше не читаються й зникають за своїм TTL. Інвалідація отримує
+`CancellationToken.None`: клієнт, що розірвав з’єднання вже після збереження, не залишить у кеші
+застарілих даних.
+
+Перевірити кеш можна через Gateway:
+
+1. Двічі поспіль виконайте `curl -i $GW/api/packages/4`.
+2. У Dashboard відкрийте Traces. Перший trace має span SQL-запиту, другий складається лише з
+   Gateway і `registry-api`.
+3. Змініть ціну: `curl -i -X PUT $GW/api/packages/4/license-price -H "Content-Type: application/json" -d '{"licensePrice":12.50}'`.
+4. Повторіть `GET` – відповідь містить нову ціну, а в лозі є запис про інвалідацію з причиною
+   `LicensePriceChanged`.
+
+![Trace повторного запиту картки пакета: лише Gateway і registry-api, без SQL](docs/screenshots/cache-repeat-trace.png)
+
+### Якщо Redis недоступний
+
+Помилку Redis `TwoLevelCache` записує як попередження й рахує промахом L2, тому сервіс і далі
+відповідає з L1 або з бази. Клієнти Redis у `registry-api` та агрегаторі налаштовано з
+`BacklogPolicy.FailFast` і таймаутом 1 секунда. Без цього StackExchange.Redis тримав кожну команду в
+черзі до 5 секунд, і `PUT` при зупиненому Redis тривав 10,8 секунди; тепер той самий запит займає
+близько 0,1 секунди. Коли Redis запускають знову, клієнти під’єднуються самі.
+
+### gRPC-контракти
+
+| Файл | Сервіс | RPC |
+| --- | --- | --- |
+| `Services/Cicd/Cicd.Api/Protos/cicd.proto` | `devhub.cicd.CicdService` | `GetRunTimeline` |
+| `Services/Registry/Registry.Api/Protos/registry.proto` | `devhub.registry.RegistryService` | `GetPackage`, `GetPackagesByIds` |
+| `Services/Telemetry/Telemetry.WebApi/Protos/telemetry.proto` | `devhub.telemetry.TelemetryService` | `GetDiscussions`, `GetCrashReports` |
+
+Кожен сервіс підключає свій файл елементом `<Protobuf … GrpcServices="Server" />`, а агрегатор – ті
+самі три файли з `GrpcServices="Client"`. Ідентифікатори мають тип `int64`, час –
+`google.protobuf.Timestamp`, ціна – повідомлення `DecimalValue` з полями `units` і `nanos`, бо
+`double` губить копійки. Номери полів після публікації не змінюються. Якщо змінити номер поля
+`download_count` лише на сервері, агрегатор без жодної помилки показує 0 завантажень; саме так
+поводиться клієнт, що не знає нового номера.
+
+Реалізації лежать у папках `Grpc` сервісів: `CicdGrpcService`, `RegistryGrpcService`,
+`TelemetryGrpcService`. Кожна успадковує згенерований базовий клас; перевіряє запит і повертає
+`InvalidArgument`, якщо Id не додатний чи список Id порожній; викликає той самий бізнес-шар, що й
+контролери, тож кеш реєстру працює для обох протоколів; перетворює DTO на повідомлення, а доменні
+винятки – на статуси, де відсутній запуск чи пакет дає `NotFound`, а не `Internal`. `AddGrpc` у
+кожному сервісі підключає `GrpcLoggingInterceptor` із `Platform.ServiceDefaults`; він логує метод,
+адресу клієнта, статус і тривалість виклику. gRPC працює через HTTP/2 на тих самих HTTPS-портах, що
+й REST.
+
+### Aggregator на gRPC
+
+Агрегатор реєструє клієнти через `AddGrpcClient` з адресами `https://cicd-api`,
+`https://registry-api` і `https://telemetry-api`. Їх створює та сама фабрика HttpClient, тож service
+discovery, політики стійкості й `CorrelationIdHandler` діють і для gRPC, а `X-Correlation-Id` іде в
+метаданих кожного виклику. Кожен виклик має дедлайн 3 секунди й `CancellationToken`. Статуси
+`Unavailable` і `DeadlineExceeded` перетворюються на попередження в картці, а не на 500.
+
+Перед будь-яким викликом агрегатор шукає картку в Redis за ключем `aggregator:build-run:{id}:full`.
+Повну картку він зберігає на 30 секунд, а картку з попередженнями не зберігає зовсім, щоб тимчасова
+відмова сервісу не поверталася з кешу. 30 секунд менше за TTL кешу реєстру, тому картка не буває
+новішою за дані, з яких її складено.
+
+![Trace картки запуску: gRPC-виклики трьох сервісів, Redis і бази даних](docs/screenshots/grpc-card-trace.png)
+
+### Метрики кешу
+
+`CacheMetrics` публікує в метрі `Registry.Cache` лічильники `cache.hits` і `cache.misses` з тегом
+`cache.level` (L1 або L2) та `cache.invalidations` з причиною. `Platform.ServiceDefaults` додає цей
+метр до OpenTelemetry, і лічильники видно у вкладці Metrics ресурсу `registry-api`. Health check
+`memory-cache` показує кількість записів, попадань і промахів L1 у відповіді `/health`, яку
+сервіс віддає в Development.
+
+![Метрика cache.hits ресурсу registry-api з тегом cache.level](docs/screenshots/cache-hits-metric.png)
+
+### Порівняння HTTP і gRPC
+
+Тривалість картки запуску 1 через Gateway виміряно окремою консольною програмою, що тримає
+з’єднання відкритими між запитами. Спершу 50 запитів на розігрів, далі 400 послідовних і по 50 від кожного паралельного
+клієнта. Варіант HTTP – попередня версія агрегатора (коміт `fa09696`), варіант gRPC – поточна. Щоб
+кеш картки не вплинув на результат, Redis під час виміру було зупинено.
+
+| Клієнтів | HTTP, медіана / p95 | gRPC, медіана / p95 | Карток за секунду, HTTP → gRPC |
+| --- | --- | --- | --- |
+| 1 | 12,05 / 18,01 мс | 10,28 / 14,64 мс | – |
+| 8 | 52,64 / 101,53 мс | 34,45 / 49,15 мс | 140 → 224 |
+| 32 | 126,78 / 233,70 мс | 116,51 / 172,66 мс | 229 → 270 |
+
+Окремий виклик сервісу на localhost триває майже однаково, різниця не перевищує 0,3 мс. Мережевої
+затримки тут немає, а HTTP/1.1 теж тримає з’єднання відкритими. Різниця з’являється під
+навантаженням: HTTP/2 пропускає всі виклики до одного сервісу через одне з’єднання, і gRPC дає на
+18–60 % більше карток за секунду, а p95 нижчий на 26–52 %. Частину виграшу дає кеш у пам’яті реєстру:
+у попередній версії його не було.

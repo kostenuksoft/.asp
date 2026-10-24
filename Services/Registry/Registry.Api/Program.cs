@@ -3,11 +3,15 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Platform.ServiceDefaults;
 using Registry.Api.ErrorHandling;
+using Registry.Api.Grpc;
+using Registry.Api.HealthChecks;
+using Registry.Bll.Caching;
 using Registry.Bll.Services;
 using Registry.Bll.Services.Interfaces;
 using Registry.Dal;
 using Registry.Dal.Seeding;
 using Registry.Dal.UnitOfWork;
+using StackExchange.Redis;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +24,26 @@ Assembly businessLayer = typeof(PackageService).Assembly;
 
 builder.Services.AddDbContext<RegistryDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IPackageService, PackageService>();
-builder.Services.AddScoped<ITagService, TagService>();
+
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1024;
+    options.TrackStatistics = true;
+});
+builder.AddRedisDistributedCache("redis", configureOptions: options =>
+{
+    options.BacklogPolicy = BacklogPolicy.FailFast;
+    options.AsyncTimeout = 1000;
+    options.SyncTimeout = 1000;
+});
+builder.Services.AddSingleton<CacheMetrics>();
+builder.Services.AddSingleton<TwoLevelCache>();
+builder.Services.AddHealthChecks().AddCheck<CacheHealthCheck>("memory-cache");
+
+builder.Services.AddScoped<PackageService>();
+builder.Services.AddScoped<IPackageService, CachedPackageService>();
+builder.Services.AddScoped<TagService>();
+builder.Services.AddScoped<ITagService, CachedTagService>();
 
 builder.Services.AddAutoMapper(configuration =>
 {
@@ -37,6 +59,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddControllers();
+builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -65,6 +88,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGrpcService<RegistryGrpcService>();
 app.MapDefaultEndpoints();
 
 await app.RunAsync();

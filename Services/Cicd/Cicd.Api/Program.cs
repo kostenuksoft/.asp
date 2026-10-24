@@ -1,5 +1,6 @@
 using System.Reflection;
 using Cicd.Api.ErrorHandling;
+using Cicd.Api.Grpc;
 using Cicd.Bll.Services;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
@@ -31,6 +32,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
 builder.Services.AddControllers();
+builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -48,6 +50,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGrpcService<CicdGrpcService>();
 app.MapDefaultEndpoints();
 
 app.Run();

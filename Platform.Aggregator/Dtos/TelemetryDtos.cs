@@ -1,10 +1,5 @@
 namespace Platform.Aggregator.Dtos;
 
-public sealed record PagedResultDto<T>(
-    IReadOnlyList<T> Items,
-    int TotalCount
-);
-
 public sealed record DiscussionDto(
     string Id,
     string PackageKey,
