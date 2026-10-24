@@ -2,6 +2,7 @@ using System.Reflection;
 using Cicd.Api.ErrorHandling;
 using Cicd.Api.Grpc;
 using Cicd.Api.HealthChecks;
+using Cicd.Api.Metrics;
 using Cicd.Bll.Services;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
@@ -21,6 +22,7 @@ builder.Services.AddScoped<IUnitOfWork>(_ => new UnitOfWork(connectionString));
 builder.Services.AddScoped<IPipelineService, PipelineService>();
 builder.Services.AddScoped<IBuildRunService, BuildRunService>();
 builder.Services.AddScoped<IAgentService, AgentService>();
+builder.Services.AddSingleton<CicdMetrics>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(

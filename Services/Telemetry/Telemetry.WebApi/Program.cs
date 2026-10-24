@@ -8,6 +8,7 @@ using Telemetry.Infrastructure;
 using Telemetry.Infrastructure.Persistence;
 using Telemetry.WebApi.ErrorHandling;
 using Telemetry.WebApi.Grpc;
+using Telemetry.WebApi.Metrics;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))
 );
+builder.Services.AddSingleton<TelemetryMetrics>();
+
 builder.Services.AddHealthChecks()
     .AddMongoDb(
         provider => provider.GetRequiredService<MongoDbContext>().Database,

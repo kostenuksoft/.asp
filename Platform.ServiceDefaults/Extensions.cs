@@ -25,6 +25,7 @@ public static class Extensions
     private const string MongoDbActivitySource = "MongoDB.Driver.Core.Extensions.DiagnosticSources";
     private const string SamplingRatioKey = "OpenTelemetry:SamplingRatio";
     private const string RegistryCacheMeter = "Registry.Cache";
+    private const string PollyMeter = "Polly";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -86,7 +87,7 @@ public static class Extensions
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddMeter(RegistryCacheMeter)
+                .AddMeter(builder.Environment.ApplicationName, RegistryCacheMeter, PollyMeter)
             )
             .WithTracing(tracing => tracing
                 .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(samplingRatio)))

@@ -6,6 +6,7 @@ using Registry.Api.ErrorHandling;
 using Registry.Api.Grpc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Registry.Api.HealthChecks;
+using Registry.Api.Metrics;
 using Registry.Bll.Caching;
 using Registry.Bll.Services;
 using Registry.Bll.Services.Interfaces;
@@ -43,6 +44,7 @@ builder.AddRedisDistributedCache(
 );
 builder.Services.AddSingleton<CacheMetrics>();
 builder.Services.AddSingleton<TwoLevelCache>();
+builder.Services.AddSingleton<RegistryMetrics>();
 
 string redisConnectionString = builder.Configuration.GetConnectionString("redis")
     ?? throw new InvalidOperationException("Connection string 'redis' is missing.");
