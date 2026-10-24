@@ -4,6 +4,7 @@ using Cicd.Grpc;
 using Grpc.Core;
 using Microsoft.Extensions.Caching.Distributed;
 using Platform.Aggregator.Dtos;
+using Platform.Aggregator.Resilience;
 using Polly;
 using Registry.Grpc;
 using StackExchange.Redis;
@@ -26,7 +27,6 @@ public sealed class BuildRunCardService(
     private const string TelemetryService = "telemetry-api";
 
     private static readonly TimeSpan s_cardTtl = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan s_callDeadline = TimeSpan.FromSeconds(3);
     private static readonly JsonSerializerOptions s_json = new(JsonSerializerDefaults.Web);
 
     public async Task<BuildRunCardDto?> GetAsync(
@@ -73,7 +73,7 @@ public sealed class BuildRunCardService(
                 $"build run {buildRunId}",
                 () => cicd.GetRunTimelineAsync(
                     new GetRunTimelineRequest { BuildRunId = buildRunId },
-                    deadline: Deadline(),
+                    deadline: Deadline(ServicePolicy.Critical),
                     cancellationToken: cancellationToken
                 ).ResponseAsync
             );
@@ -94,7 +94,7 @@ public sealed class BuildRunCardService(
                 $"packages {string.Join(',', packageIds)}",
                 () => registry.GetPackagesByIdsAsync(
                     new GetPackagesByIdsRequest { PackageIds = { packageIds } },
-                    deadline: Deadline(),
+                    deadline: Deadline(ServicePolicy.Critical),
                     cancellationToken: cancellationToken
                 ).ResponseAsync,
                 warnings,
@@ -105,7 +105,7 @@ public sealed class BuildRunCardService(
             $"discussions of {group.First().PackageKey}",
             () => telemetry.GetDiscussionsAsync(
                 new PackageItemsRequest { PackageKey = group.First().PackageKey, PageSize = ItemsPerPackage },
-                deadline: Deadline(),
+                deadline: Deadline(ServicePolicy.NonCritical),
                 cancellationToken: cancellationToken
             ).ResponseAsync,
             warnings,
@@ -116,7 +116,7 @@ public sealed class BuildRunCardService(
             $"crash reports of {group.First().PackageKey}",
             () => telemetry.GetCrashReportsAsync(
                 new PackageItemsRequest { PackageKey = group.First().PackageKey, PageSize = ItemsPerPackage },
-                deadline: Deadline(),
+                deadline: Deadline(ServicePolicy.NonCritical),
                 cancellationToken: cancellationToken
             ).ResponseAsync,
             warnings,
@@ -306,7 +306,7 @@ public sealed class BuildRunCardService(
         return false;
     }
 
-    private static DateTime Deadline() => DateTime.UtcNow.Add(s_callDeadline);
+    private static DateTime Deadline(ServicePolicy policy) => DateTime.UtcNow.Add(policy.CallDeadline);
 
     internal static bool IsUnavailable(
         Exception exception,

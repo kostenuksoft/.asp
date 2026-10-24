@@ -194,3 +194,6 @@ generated_code = true
 
 [Services/Telemetry/Telemetry.Domain/Entities/*.cs]
 dotnet_style_readonly_field = false
+
+[Platform.Aggregator/Resilience/ResilienceExtensions.cs]
+dotnet_diagnostic.EXTEXP0001.severity = none

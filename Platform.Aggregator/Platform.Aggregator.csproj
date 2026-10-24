@@ -8,6 +8,8 @@
     <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.HealthCheck" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
     <PackageReference Include="Grpc.Tools">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
