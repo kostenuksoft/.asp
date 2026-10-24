@@ -11,7 +11,6 @@
     <PackageReference Include="MongoDB.Bson" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Platform.ServiceDefaults;
 using Registry.Api.ErrorHandling;
 using Registry.Api.Grpc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Registry.Api.HealthChecks;
 using Registry.Bll.Caching;
 using Registry.Bll.Services;
@@ -30,15 +31,41 @@ builder.Services.AddMemoryCache(options =>
     options.SizeLimit = 1024;
     options.TrackStatistics = true;
 });
-builder.AddRedisDistributedCache("redis", configureOptions: options =>
-{
-    options.BacklogPolicy = BacklogPolicy.FailFast;
-    options.AsyncTimeout = 1000;
-    options.SyncTimeout = 1000;
-});
+builder.AddRedisDistributedCache(
+    "redis",
+    settings => settings.DisableHealthChecks = true,
+    options =>
+    {
+        options.BacklogPolicy = BacklogPolicy.FailFast;
+        options.AsyncTimeout = 1000;
+        options.SyncTimeout = 1000;
+    }
+);
 builder.Services.AddSingleton<CacheMetrics>();
 builder.Services.AddSingleton<TwoLevelCache>();
-builder.Services.AddHealthChecks().AddCheck<CacheHealthCheck>("memory-cache");
+
+string redisConnectionString = builder.Configuration.GetConnectionString("redis")
+    ?? throw new InvalidOperationException("Connection string 'redis' is missing.");
+
+builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        connectionString: connectionString,
+        name: "registry-db",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["database", "sql", "ready"],
+        timeout: TimeSpan.FromSeconds(5)
+    )
+    .AddRedis(
+        redisConnectionString: redisConnectionString,
+        name: "redis-cache",
+        failureStatus: HealthStatus.Degraded,
+        tags: ["cache", "redis", "ready"],
+        timeout: TimeSpan.FromSeconds(3)
+    )
+    .AddCheck<CacheHealthCheck>("memory-cache");
+builder.Services.AddGrpcHealthChecks(options =>
+    options.Services.Map(string.Empty, registration => registration.Tags.Contains("database"))
+);
 
 builder.Services.AddScoped<PackageService>();
 builder.Services.AddScoped<IPackageService, CachedPackageService>();
@@ -89,6 +116,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGrpcService<RegistryGrpcService>();
+app.MapGrpcHealthChecksService();
 app.MapDefaultEndpoints();
 
 await app.RunAsync();

@@ -31,9 +31,6 @@ public static class DependencyInjection
         services.AddHostedService<IndexCreationService>();
         services.AddHostedService<DataSeedingService>();
 
-        services.AddHealthChecks()
-            .AddMongoDb(provider => provider.GetRequiredService<MongoDbContext>().Database, name: "mongodb");
-
         return services;
     }
 }

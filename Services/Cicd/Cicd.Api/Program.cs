@@ -1,9 +1,11 @@
 using System.Reflection;
 using Cicd.Api.ErrorHandling;
 using Cicd.Api.Grpc;
+using Cicd.Api.HealthChecks;
 using Cicd.Bll.Services;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Platform.ServiceDefaults;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -19,6 +21,24 @@ builder.Services.AddScoped<IUnitOfWork>(_ => new UnitOfWork(connectionString));
 builder.Services.AddScoped<IPipelineService, PipelineService>();
 builder.Services.AddScoped<IBuildRunService, BuildRunService>();
 builder.Services.AddScoped<IAgentService, AgentService>();
+
+builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        connectionString: connectionString,
+        name: "cicd-db",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["database", "sql", "ready"],
+        timeout: TimeSpan.FromSeconds(5)
+    )
+    .AddCheck<AgentPoolHealthCheck>(
+        "agent-pool",
+        failureStatus: HealthStatus.Degraded,
+        tags: ["ready"],
+        timeout: TimeSpan.FromSeconds(5)
+    );
+builder.Services.AddGrpcHealthChecks(options =>
+    options.Services.Map(string.Empty, registration => registration.Tags.Contains("database"))
+);
 
 builder.Services.AddAutoMapper(configuration =>
 {
@@ -51,6 +71,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGrpcService<CicdGrpcService>();
+app.MapGrpcHealthChecksService();
 app.MapDefaultEndpoints();
 
 app.Run();
