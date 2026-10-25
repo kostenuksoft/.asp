@@ -38,6 +38,10 @@ public sealed class IndexCreationService(
                     discussionKeys.Text(discussion => discussion.Title).Text("comments.body"),
                     new CreateIndexOptions { Name = "tx_title_commentBody" }
                 ),
+                new CreateIndexModel<Discussion>(
+                    discussionKeys.Ascending(discussion => discussion.PackageId),
+                    new CreateIndexOptions { Name = "ix_packageId" }
+                ),
             ],
             cancellationToken
         );

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Extensions.DiagnosticSources;
 using Telemetry.Domain.Entities;
@@ -13,6 +14,10 @@ public sealed class MongoDbContext(IOptions<MongoDbOptions> options) : IDisposab
     public IMongoCollection<Discussion> Discussions => Database.GetCollection<Discussion>("discussions");
 
     public IMongoCollection<CrashReport> CrashReports => Database.GetCollection<CrashReport>("crashReports");
+
+    public IMongoCollection<BsonDocument> PackageInsights => Database.GetCollection<BsonDocument>("packageInsights");
+
+    public IMongoCollection<BsonDocument> ProcessedEvents => Database.GetCollection<BsonDocument>("processedEvents");
 
     public void Dispose() => Database.Client.Dispose();
 

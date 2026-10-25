@@ -89,7 +89,7 @@ try {
 }
 check("validator rejects a malformed packageKey reference", malformedKey === 121, `error ${malformedKey}`);
 
-const expectedIndexes = { buildEvents: 3, crashReports: 5, discussions: 4, packageInsights: 1 };
+const expectedIndexes = { buildEvents: 3, crashReports: 5, discussions: 5, packageInsights: 2 };
 const indexReport = Object.entries(expectedIndexes).map(([name, count]) => {
     const actual = db.getCollection(name).getIndexes().filter((index) => index.name !== "_id_").length;
     return { name, count, actual };

@@ -69,6 +69,8 @@ public sealed class Discussion : BaseEntity
 
     public string PublisherSlug { get; private set; } = string.Empty;
 
+    public DateTime? PackageSyncedAt { get; private set; }
+
     public string Title { get; private set; } = string.Empty;
 
     public DiscussionCategory Category { get; private set; }
