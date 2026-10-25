@@ -6,6 +6,21 @@ SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 GO
 
+INSERT INTO cicd.Package (PackageId, PublisherSlug, PackageName, PackageKey, LicensePrice, CreatedBy)
+SELECT v.PackageId, v.PublisherSlug, v.PackageName, CONCAT(v.PublisherSlug, N'/', v.PackageName), v.LicensePrice, N'seed'
+FROM
+(
+    VALUES
+        (1, N'payments-team', N'billing-sdk',    49.00),
+        (2, N'platform-team', N'devhub-auth',     0.00),
+        (3, N'platform-team', N'devhub-storage',  0.00)
+) AS v (PackageId, PublisherSlug, PackageName, LicensePrice)
+WHERE NOT EXISTS
+(
+    SELECT 1 FROM cicd.Package AS p WHERE p.PackageId = v.PackageId
+);
+GO
+
 INSERT INTO cicd.Pipeline (Name, RepositoryUrl, DefaultBranch, PackageId, PackageKey, CreatedBy)
 SELECT v.Name, v.RepositoryUrl, v.DefaultBranch, v.PackageId, v.PackageKey, N'seed'
 FROM
@@ -38,8 +53,8 @@ WHERE NOT EXISTS
 );
 GO
 
-INSERT INTO cicd.Artifact (PackageId, PackageKey, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri, RegistrySyncedAt, CreatedBy)
-SELECT v.PackageId, CONCAT(v.PublisherSlug, N'/', v.PackageName), v.PackageName, v.PublisherSlug, v.SemVer, v.SizeBytes, v.Sha256, v.StorageUri, SYSUTCDATETIME(), N'seed'
+INSERT INTO cicd.Artifact (PackageId, PackageKey, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri, LicensePrice, RegistrySyncedAt, CreatedBy)
+SELECT v.PackageId, CONCAT(v.PublisherSlug, N'/', v.PackageName), v.PackageName, v.PublisherSlug, v.SemVer, v.SizeBytes, v.Sha256, v.StorageUri, c.LicensePrice, c.SyncedAt, N'seed'
 FROM
 (
     VALUES
@@ -48,6 +63,7 @@ FROM
         (3, N'devhub-storage', N'platform-team', N'1.4.2', 2097152, 'c4a7e0d3b6f9c2e5a8d1b4f7e0a3d6c9b2e5f8a1d4c7b0e3f6a9d2c5b8e1f4a7', N'https://artifacts.devhub.local/storage/1.4.2.nupkg'),
         (1, N'billing-sdk',    N'payments-team', N'0.9.1',  524288, 'e1d4c7b0a3f6e9d2c5b8a1f4e7d0c3b6a9f2e5d8c1b4a7f0e3d6c9b2a5f8e1d4', N'https://artifacts.devhub.local/billing/0.9.1.nupkg')
 ) AS v (PackageId, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri)
+LEFT JOIN cicd.Package AS c ON c.PackageId = v.PackageId
 WHERE NOT EXISTS
 (
     SELECT 1 FROM cicd.Artifact AS a WHERE a.Sha256 = v.Sha256

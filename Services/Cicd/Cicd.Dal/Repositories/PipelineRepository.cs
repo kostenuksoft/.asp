@@ -21,4 +21,16 @@ public sealed class PipelineRepository(SqlConnection connection, Func<SqlTransac
         new { Name = name },
         cancellationToken
     ));
+
+    public Task<int> UpdatePackageKeyAsync(
+        long packageId,
+        string packageKey,
+        string updatedBy,
+        CancellationToken cancellationToken = default
+    ) => TranslateErrorsAsync(() => Connection.ExecuteAsync(Command(
+        "UPDATE cicd.Pipeline SET PackageKey = @PackageKey, UpdatedAt = SYSUTCDATETIME(), UpdatedBy = @UpdatedBy " +
+        "WHERE PackageId = @PackageId AND IsDeleted = 0 AND PackageKey <> @PackageKey;",
+        new { PackageId = packageId, PackageKey = packageKey, UpdatedBy = updatedBy },
+        cancellationToken
+    )));
 }

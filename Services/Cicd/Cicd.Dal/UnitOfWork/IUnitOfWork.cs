@@ -13,6 +13,10 @@ public interface IUnitOfWork : IAsyncDisposable
 
     IAgentRepository Agents { get; }
 
+    IPackageRepository Packages { get; }
+
+    IProcessedEventRepository ProcessedEvents { get; }
+
     Task BeginTransactionAsync(
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
         CancellationToken cancellationToken = default

@@ -20,6 +20,8 @@ public sealed class Artifact : AuditableEntity
 
     public string StorageUri { get; set; } = string.Empty;
 
+    public decimal? LicensePrice { get; set; }
+
     public DateTime? RegistrySyncedAt { get; set; }
 
     public byte[] RowVersion { get; set; } = [];

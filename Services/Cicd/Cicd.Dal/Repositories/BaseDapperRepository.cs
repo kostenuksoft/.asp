@@ -47,12 +47,6 @@ public abstract class BaseDapperRepository<T>(
         return affected == 1;
     }
 
-    protected CommandDefinition Command(
-        string sql,
-        object? parameters,
-        CancellationToken cancellationToken
-    ) => new(sql, parameters, Transaction, CommandTimeoutSeconds, cancellationToken: cancellationToken);
-
     protected CommandDefinition Procedure(
         string name,
         object? parameters,

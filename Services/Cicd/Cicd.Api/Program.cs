@@ -2,11 +2,15 @@ using System.Reflection;
 using Cicd.Api.ErrorHandling;
 using Cicd.Api.Grpc;
 using Cicd.Api.HealthChecks;
+using Cicd.Api.IntegrationEvents;
+using Cicd.Api.IntegrationEvents.Events;
+using Cicd.Api.IntegrationEvents.Handlers;
 using Cicd.Api.Metrics;
 using Cicd.Bll.Services;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Platform.EventBus;
 using Platform.ServiceDefaults;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -23,6 +27,13 @@ builder.Services.AddScoped<IPipelineService, PipelineService>();
 builder.Services.AddScoped<IBuildRunService, BuildRunService>();
 builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddSingleton<CicdMetrics>();
+
+builder.AddRabbitMQClient("messaging", settings => settings.DisableTracing = true);
+builder.Services.AddScoped<IIntegrationEventHandler<PackageCreatedEvent>, PackageCreatedHandler>();
+builder.Services.AddScoped<IIntegrationEventHandler<PackageRenamedEvent>, PackageRenamedHandler>();
+builder.Services.AddScoped<IIntegrationEventHandler<PackageLicensePriceChangedEvent>, PackageLicensePriceChangedHandler>();
+builder.Services.AddScoped<IIntegrationEventHandler<PackageDeletedEvent>, PackageDeletedHandler>();
+builder.Services.AddHostedService<RegistryEventsConsumer>();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(
