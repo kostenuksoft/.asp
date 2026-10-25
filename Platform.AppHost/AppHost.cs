@@ -27,9 +27,15 @@ IResourceBuilder<MongoDBDatabaseResource> telemetryDb = mongo.AddDatabase("Telem
 IResourceBuilder<RedisResource> redis = builder.AddRedis("redis")
     .WithDataVolume();
 
+IResourceBuilder<RabbitMQServerResource> messaging = builder.AddRabbitMQ("messaging")
+    .WithDataVolume()
+    .WithManagementPlugin();
+
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
     .WaitFor(cicdDb)
+    .WithReference(messaging)
+    .WaitFor(messaging)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
@@ -37,11 +43,15 @@ IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registr
     .WaitFor(registryDb)
     .WithReference(redis)
     .WaitFor(redis)
+    .WithReference(messaging)
+    .WaitFor(messaging)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
     .WithReference(telemetryDb)
     .WaitFor(telemetryDb)
+    .WithReference(messaging)
+    .WaitFor(messaging)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator")
@@ -64,4 +74,6 @@ builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WaitFor(aggregator)
     .WithHttpHealthCheck("/health/ready");
 
-builder.Build().Run();
+builder
+    .Build()
+    .Run();

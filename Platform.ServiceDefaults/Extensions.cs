@@ -93,6 +93,7 @@ public static class Extensions
                 .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(samplingRatio)))
                 .AddSource(builder.Environment.ApplicationName)
                 .AddSource(MongoDbActivitySource)
+                .AddSource("Platform.Messaging")
                 .AddAspNetCoreInstrumentation(options => options.Filter = context => !IsHealthRequest(context.Request.Path))
                 .AddHttpClientInstrumentation()
                 .AddSqlClientInstrumentation()
