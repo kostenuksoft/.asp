@@ -11,7 +11,7 @@ DevHub – внутрішня платформа розробників одні
 
 | № | Контекст | БД | Технологія | Сутності / колекції |
 | --- | --- | --- | --- | --- |
-| 1 | Збірки CI/CD | `DevHub_Cicd` | SQL Server + ADO.NET і Dapper | `Pipeline`, `Agent`, `BuildRun`, `BuildRunDetail`, `BuildStep`, `Artifact`, `ArtifactUsage`, `RunStatusHistory` |
+| 1 | Збірки CI/CD | `DevHub_Cicd` | SQL Server + ADO.NET і Dapper | `Pipeline`, `Agent`, `BuildRun`, `BuildRunDetail`, `BuildStep`, `Artifact`, `ArtifactUsage`, `RunStatusHistory`, `Package` (копія реєстру) |
 | 2 | Реєстр пакетів | `DevHub_Registry` | SQL Server + EF Core (Code First) | `Publisher`, `Package`, `PackageVersion`, `PackageManifest`, `Tag`, `PackageTag` |
 | 3 | Телеметрія й обговорення | `devhub_telemetry` | MongoDB | `buildEvents`, `crashReports`, `discussions`, `packageInsights` |
 
@@ -30,6 +30,7 @@ DevHub – внутрішня платформа розробників одні
 | Запуск збірки | `BuildRun` | `BuildRunDetail`, `BuildStep`, `RunStatusHistory` | Створюється тригером, кілька хвилин змінює статус, після завершення незмінний. |
 | Агент | `Agent` | немає | Постійно захоплюється запусками й звільняється. |
 | Артефакт | `Artifact` | немає | Живе довше за запуск, який його створив; його споживають пізніші запуски (M:N через `ArtifactUsage`). |
+| Копія пакета | `Package` | немає | Створюється й оновлюється лише подіями реєстру; сервіс збірок сам її не змінює, а завершення запуску бере з неї знімок назви й ціни для артефакту. |
 
 ### №2 – Реєстр пакетів
 
