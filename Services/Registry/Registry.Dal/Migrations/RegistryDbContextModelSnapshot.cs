@@ -22,6 +22,77 @@ namespace Registry.Dal.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Registry.Dal.Outbox.OutboxMessage", b =>
+                {
+                    b.Property<long>("OutboxMessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("OutboxMessageId"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Exchange")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("RoutingKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TraceParent")
+                        .HasMaxLength(55)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(55)");
+
+                    b.HasKey("OutboxMessageId")
+                        .HasName("PK_OutboxMessage");
+
+                    b.HasIndex(new[] { "OutboxMessageId" }, "IX_OutboxMessage_Unpublished")
+                        .HasFilter("[PublishedAt] IS NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex(new[] { "OutboxMessageId" }, "IX_OutboxMessage_Unpublished"), new[] { "OccurredAt" });
+
+                    b.HasIndex(new[] { "EventId" }, "UQ_OutboxMessage_EventId")
+                        .IsUnique();
+
+                    b.ToTable("OutboxMessage", "registry");
+                });
+
             modelBuilder.Entity("Registry.Domain.Entities.Package", b =>
                 {
                     b.Property<long>("PackageId")

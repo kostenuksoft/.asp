@@ -51,6 +51,16 @@ public sealed class CachedPackageService(PackageService inner, TwoLevelCache cac
         return created;
     }
 
+    public async Task RenameAsync(
+        long packageId,
+        RenamePackageDto input,
+        CancellationToken cancellationToken
+    )
+    {
+        await inner.RenameAsync(packageId, input, cancellationToken);
+        await InvalidateAsync(packageId, "PackageRenamed", listsChanged: true);
+    }
+
     public async Task ChangeLicensePriceAsync(
         long packageId,
         ChangeLicensePriceDto input,

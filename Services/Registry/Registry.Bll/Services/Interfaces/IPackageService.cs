@@ -24,6 +24,12 @@ public interface IPackageService
         CancellationToken cancellationToken
     );
 
+    Task RenameAsync(
+        long packageId,
+        RenamePackageDto input,
+        CancellationToken cancellationToken
+    );
+
     Task ChangeLicensePriceAsync(
         long packageId,
         ChangeLicensePriceDto input,

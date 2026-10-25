@@ -24,10 +24,7 @@ public sealed class Package : AuditableEntity
             throw new DomainException("A package needs an existing publisher.");
         }
 
-        if (string.IsNullOrWhiteSpace(name) || name.Length < 2 || !name.All(IsNameCharacter))
-        {
-            throw new DomainException("Package name must have at least 2 characters: letters, digits, dot, underscore or hyphen.");
-        }
+        ThrowIfInvalidName(name);
 
         if (projectUrl is not null && !projectUrl.StartsWith("https://", StringComparison.Ordinal))
         {
@@ -65,6 +62,18 @@ public sealed class Package : AuditableEntity
     public IReadOnlyCollection<PackageVersion> Versions => _versions;
 
     public IReadOnlyCollection<PackageTag> PackageTags => _packageTags;
+
+    public void Rename(string name)
+    {
+        ThrowIfInvalidName(name);
+
+        if (name == Name)
+        {
+            throw new DomainException($"Package is already named '{name}'.");
+        }
+
+        Name = name;
+    }
 
     public void ChangeLicensePrice(decimal licensePrice)
     {
@@ -137,6 +146,14 @@ public sealed class Package : AuditableEntity
         PackageTag packageTag = new(this, tagId, assignedAt);
         _packageTags.Add(packageTag);
         return packageTag;
+    }
+
+    private static void ThrowIfInvalidName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Length < 2 || !name.All(IsNameCharacter))
+        {
+            throw new DomainException("Package name must have at least 2 characters: letters, digits, dot, underscore or hyphen.");
+        }
     }
 
     private static bool IsNameCharacter(
