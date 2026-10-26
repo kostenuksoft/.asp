@@ -1,0 +1,7 @@
+name: devhub-keycloak
+runtime: dotnet
+description: Keycloak realm DevHub with resource servers, roles, clients and test users
+config:
+  keycloakUrl:
+    type: string
+    default: http://localhost:8080

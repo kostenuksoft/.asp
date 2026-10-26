@@ -26,6 +26,9 @@
     <Project Path="Services/Telemetry/Telemetry.Tests/Telemetry.Tests.csproj" />
     <Project Path="Services/Telemetry/Telemetry.WebApi/Telemetry.WebApi.csproj" />
   </Folder>
+  <Folder Name="/infra/">
+    <Project Path="infra/keycloak/KeycloakRealm.csproj" />
+  </Folder>
   <Project Path="Platform.Aggregator/Platform.Aggregator.csproj" />
   <Project Path="Platform.ApiGateway/Platform.ApiGateway.csproj" />
   <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
