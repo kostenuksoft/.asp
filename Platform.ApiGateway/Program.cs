@@ -7,6 +7,19 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
+    .AddPolicyScheme(
+        PlatformAuthentication.Scheme,
+        "Bearer token of any trusted issuer",
+        options => options.ForwardDefaultSelector = PlatformAuthentication.SchemeByIssuer(builder.Configuration)
+    )
+    .AddJwtBearer(PlatformAuthentication.AuthServiceScheme, options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    });
+builder.Services.AddAuthorization();
+
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
     .AddServiceDiscoveryDestinationResolver();
@@ -46,6 +59,9 @@ app.Use(async (context, next) =>
         stopwatch.ElapsedMilliseconds
     );
 });
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapReverseProxy();
 app.MapDefaultEndpoints();

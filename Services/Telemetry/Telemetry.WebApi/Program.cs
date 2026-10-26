@@ -40,6 +40,19 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 );
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
+    .AddPolicyScheme(
+        PlatformAuthentication.Scheme,
+        "Bearer token of any trusted issuer",
+        options => options.ForwardDefaultSelector = PlatformAuthentication.SchemeByIssuer(builder.Configuration)
+    )
+    .AddJwtBearer(PlatformAuthentication.AuthServiceScheme, options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    });
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))
 );
@@ -76,6 +89,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

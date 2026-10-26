@@ -45,11 +45,32 @@ IResourceBuilder<RabbitMQServerResource> messaging = builder.AddRabbitMQ("messag
     .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
     .WithLifetime(ContainerLifetime.Persistent);
 
+IResourceBuilder<ParameterResource> identitySqlPassword = builder.AddParameter("identity-sql-password", secret: true);
+
+IResourceBuilder<SqlServerServerResource> identitySql = builder.AddSqlServer("identity-sql", identitySqlPassword)
+    .WithDataVolume()
+    .WithContainerName("devhub-identity-sql")
+    .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
+    .WithLifetime(ContainerLifetime.Persistent);
+
+IResourceBuilder<SqlServerDatabaseResource> identityDb = identitySql.AddDatabase("IdentityDb", "DevHub_Identity");
+
+IResourceBuilder<ParameterResource> jwtSecret = builder.AddParameter("jwt-secret", secret: true);
+IResourceBuilder<ParameterResource> authAdminPassword = builder.AddParameter("auth-admin-password", secret: true);
+
+IResourceBuilder<ProjectResource> auth = builder.AddProject<Projects.Auth_Api>("auth-api")
+    .WithReference(identityDb)
+    .WaitFor(identityDb)
+    .WithEnvironment("Jwt__SecretKey", jwtSecret)
+    .WithEnvironment("Auth__AdminPassword", authAdminPassword)
+    .WithHttpHealthCheck("/health/ready");
+
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
     .WaitFor(cicdDb)
     .WithReference(messaging)
     .WaitFor(messaging)
+    .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
@@ -59,6 +80,7 @@ IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registr
     .WaitFor(redis)
     .WithReference(messaging)
     .WaitFor(messaging)
+    .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
@@ -66,6 +88,7 @@ IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Teleme
     .WaitFor(telemetryDb)
     .WithReference(messaging)
     .WaitFor(messaging)
+    .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator")
@@ -81,11 +104,14 @@ IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platf
 
 builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WithHttpEndpoint(port: 5000, name: "public")
+    .WithReference(auth)
     .WithReference(cicd)
     .WithReference(registry)
     .WithReference(telemetry)
     .WithReference(aggregator)
+    .WaitFor(auth)
     .WaitFor(aggregator)
+    .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithHttpHealthCheck("/health/ready");
 
 builder

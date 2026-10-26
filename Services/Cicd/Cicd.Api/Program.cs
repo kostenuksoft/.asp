@@ -64,6 +64,19 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 );
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
+builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
+    .AddPolicyScheme(
+        PlatformAuthentication.Scheme,
+        "Bearer token of any trusted issuer",
+        options => options.ForwardDefaultSelector = PlatformAuthentication.SchemeByIssuer(builder.Configuration)
+    )
+    .AddJwtBearer(PlatformAuthentication.AuthServiceScheme, options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    });
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers();
 builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
 builder.Services.AddEndpointsApiExplorer();
@@ -80,6 +93,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

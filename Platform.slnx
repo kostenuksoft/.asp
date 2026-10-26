@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/Services/" />
+  <Folder Name="/Services/Auth/">
+    <Project Path="Services/Auth/Auth.Api/Auth.Api.csproj" />
+  </Folder>
   <Folder Name="/Services/Cicd/">
     <Project Path="Services/Cicd/Cicd.Api/Cicd.Api.csproj" />
     <Project Path="Services/Cicd/Cicd.Bll/Cicd.Bll.csproj" />

@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Telemetry.Application.Common.Models;
 using Telemetry.Application.CrashReports.Commands.CreateCrashReport;
@@ -8,6 +9,7 @@ using Telemetry.Domain.Enums;
 
 namespace Telemetry.WebApi.Controllers;
 
+[Authorize]
 [Route("api/crash-reports")]
 public sealed class CrashReportsController(ISender sender) : ApiController(sender)
 {

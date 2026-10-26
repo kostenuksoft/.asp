@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Services\Auth\Auth.Api\Auth.Api.csproj" />
     <ProjectReference Include="..\Services\Cicd\Cicd.Api\Cicd.Api.csproj" />
     <ProjectReference Include="..\Services\Registry\Registry.Api\Registry.Api.csproj" />
     <ProjectReference Include="..\Services\Telemetry\Telemetry.WebApi\Telemetry.WebApi.csproj" />
