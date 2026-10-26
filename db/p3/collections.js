@@ -109,7 +109,8 @@ const collections = [
             { name: "ux_packageKey_title", keys: { packageKey: 1, title: 1 }, options: { unique: true } },
             { name: "ix_packageKey_state_openedAt", keys: { packageKey: 1, state: 1, openedAt: -1 } },
             { name: "ix_labels", keys: { labels: 1 } },
-            { name: "tx_title_commentBody", keys: { title: "text", "comments.body": "text" } }
+            { name: "tx_title_commentBody", keys: { title: "text", "comments.body": "text" } },
+            { name: "ix_packageId", keys: { packageId: 1 } }
         ],
         schema: {
             bsonType: "object",
@@ -121,6 +122,7 @@ const collections = [
                 packageKey: { bsonType: "string", pattern: packageKeyPattern, description: "Copy: readable \"<publisher>/<name>\" of the package in packageId. Owner: Registry. Policy: refreshed by Registry events." },
                 packageName: { bsonType: "string", maxLength: 200, description: "Copy of registry.Package.Name. Owner: Registry. Policy: refreshed by Registry events." },
                 publisherSlug: { bsonType: "string", maxLength: 100, description: "Copy of registry.Publisher.Slug. Owner: Registry. Policy: refreshed by Registry events." },
+                packageSyncedAt: { bsonType: "date", description: "occurredAt of the last applied Registry event; an older event leaves the copies untouched." },
                 title: { bsonType: "string", maxLength: 300 },
                 category: { enum: ["bug", "question", "featureRequest", "announcement"] },
                 state: { enum: ["open", "answered", "closed"] },
@@ -160,7 +162,8 @@ const collections = [
     {
         name: "packageInsights",
         indexes: [
-            { name: "ux_packageKey_windowStart", keys: { packageKey: 1, windowStart: -1 }, options: { unique: true } }
+            { name: "ux_packageKey_windowStart", keys: { packageKey: 1, windowStart: -1 }, options: { unique: true } },
+            { name: "ix_packageId", keys: { packageId: 1 } }
         ],
         schema: {
             bsonType: "object",
@@ -172,6 +175,7 @@ const collections = [
                 packageKey: { bsonType: "string", pattern: packageKeyPattern, description: "Copy: readable \"<publisher>/<name>\" of the package in packageId. Owner: Registry. Policy: refreshed by Registry events." },
                 packageName: { bsonType: "string", maxLength: 200, description: "Copy of registry.Package.Name. Owner: Registry. Policy: refreshed by Registry events." },
                 publisherSlug: { bsonType: "string", maxLength: 100, description: "Copy of registry.Publisher.Slug. Owner: Registry. Policy: refreshed by Registry events." },
+                packageSyncedAt: { bsonType: "date", description: "occurredAt of the last applied Registry event; an older event leaves the copies untouched." },
                 windowStart: { bsonType: "date" },
                 windowEnd: { bsonType: "date" },
                 totals: {

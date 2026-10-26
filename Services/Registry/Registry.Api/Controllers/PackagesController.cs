@@ -16,6 +16,7 @@ public sealed class PackagesController(
     IValidator<PackageQuery> queryValidator,
     IValidator<CreatePackageDto> createValidator,
     IValidator<ChangeLicensePriceDto> licensePriceValidator,
+    IValidator<RenamePackageDto> renameValidator,
     RegistryMetrics metrics
 )
     : ControllerBase
@@ -83,6 +84,27 @@ public sealed class PackagesController(
         {
             throw;
         }
+    }
+
+    [HttpPut("{id:long}/name")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Rename(
+        long id,
+        RenamePackageDto input,
+        CancellationToken cancellationToken
+    )
+    {
+        ValidationResult result = await renameValidator.ValidateAsync(input, cancellationToken);
+        if (!result.IsValid)
+        {
+            return ValidationProblem(new ValidationProblemDetails(result.ToDictionary()));
+        }
+
+        await packages.RenameAsync(id, input, cancellationToken);
+        return NoContent();
     }
 
     [HttpPut("{id:long}/license-price")]

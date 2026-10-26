@@ -82,6 +82,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="9.5.2" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client.v7" Version="9.5.2" />
+    <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

@@ -8,4 +8,11 @@ public interface IPipelineRepository : IGenericRepository<Pipeline>
         string name,
         CancellationToken cancellationToken = default
     );
+
+    Task<int> UpdatePackageKeyAsync(
+        long packageId,
+        string packageKey,
+        string updatedBy,
+        CancellationToken cancellationToken = default
+    );
 }

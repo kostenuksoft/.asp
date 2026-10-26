@@ -17,6 +17,8 @@ public sealed class UnitOfWork : IUnitOfWork
         BuildRuns = new BuildRunRepository(_connection, () => _transaction);
         Artifacts = new ArtifactRepository(_connection, () => _transaction);
         Agents = new AgentRepository(_connection, () => _transaction);
+        Packages = new PackageRepository(_connection, () => _transaction);
+        ProcessedEvents = new ProcessedEventRepository(_connection, () => _transaction);
     }
 
     public IPipelineRepository Pipelines { get; }
@@ -26,6 +28,10 @@ public sealed class UnitOfWork : IUnitOfWork
     public IArtifactRepository Artifacts { get; }
 
     public IAgentRepository Agents { get; }
+
+    public IPackageRepository Packages { get; }
+
+    public IProcessedEventRepository ProcessedEvents { get; }
 
     public async Task BeginTransactionAsync(
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,

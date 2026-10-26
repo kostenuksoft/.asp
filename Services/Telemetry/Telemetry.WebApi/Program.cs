@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Platform.EventBus;
 using Platform.ServiceDefaults;
 using Telemetry.Application;
 using Telemetry.Application.Common.Mappings;
@@ -8,6 +9,9 @@ using Telemetry.Infrastructure;
 using Telemetry.Infrastructure.Persistence;
 using Telemetry.WebApi.ErrorHandling;
 using Telemetry.WebApi.Grpc;
+using Telemetry.WebApi.IntegrationEvents;
+using Telemetry.WebApi.IntegrationEvents.Events;
+using Telemetry.WebApi.IntegrationEvents.Handlers;
 using Telemetry.WebApi.Metrics;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -40,6 +44,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))
 );
 builder.Services.AddSingleton<TelemetryMetrics>();
+
+builder.AddRabbitMQClient("messaging", settings => settings.DisableTracing = true);
+builder.Services.AddScoped<IIntegrationEventHandler<PackageRenamedEvent>, PackageRenamedHandler>();
+builder.Services.AddHostedService<RegistryEventsConsumer>();
 
 builder.Services.AddHealthChecks()
     .AddMongoDb(

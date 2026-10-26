@@ -10,10 +10,10 @@ public sealed class ArtifactRepository(SqlConnection connection, Func<SqlTransac
 {
     protected override string InsertSql =>
         "INSERT INTO cicd.Artifact " +
-        "(PackageId, PackageKey, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri, RegistrySyncedAt, CreatedBy) " +
+        "(PackageId, PackageKey, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri, LicensePrice, RegistrySyncedAt, CreatedBy) " +
         "OUTPUT INSERTED.ArtifactId " +
         "VALUES (@PackageId, @PackageKey, @PackageName, @PublisherSlug, @SemVer, @SizeBytes, @Sha256, @StorageUri, " +
-        "@RegistrySyncedAt, @CreatedBy);";
+        "@LicensePrice, @RegistrySyncedAt, @CreatedBy);";
 
     public Task<Artifact?> GetBySha256Async(
         string sha256,

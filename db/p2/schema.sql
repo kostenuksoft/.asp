@@ -177,6 +177,34 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID(N'registry.OutboxMessage', N'U') IS NULL
+BEGIN
+    CREATE TABLE registry.OutboxMessage
+    (
+        OutboxMessageId BIGINT          IDENTITY(1, 1) NOT NULL,
+        EventId         UNIQUEIDENTIFIER NOT NULL,
+        EventType       NVARCHAR(200)   NOT NULL,
+        Exchange        NVARCHAR(200)   NOT NULL,
+        RoutingKey      NVARCHAR(200)   NOT NULL,
+        CorrelationId   NVARCHAR(100)   NULL,
+        OccurredAt      DATETIME2(3)    NOT NULL,
+        SchemaVersion   INT             NOT NULL,
+        Payload         NVARCHAR(MAX)   NOT NULL,
+        TraceParent     VARCHAR(55)     NULL,
+        PublishedAt     DATETIME2(3)    NULL,
+        Attempts        INT             NOT NULL,
+        LastError       NVARCHAR(1000)  NULL,
+
+        CONSTRAINT PK_OutboxMessage PRIMARY KEY CLUSTERED (OutboxMessageId)
+    );
+END;
+GO
+
+IF INDEXPROPERTY(OBJECT_ID(N'registry.OutboxMessage'), N'UQ_OutboxMessage_EventId', N'IndexID') IS NULL
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_OutboxMessage_EventId
+        ON registry.OutboxMessage (EventId);
+GO
+
 IF INDEXPROPERTY(OBJECT_ID(N'registry.Package'), N'IX_Package_PublisherId_Name', N'IndexID') IS NULL
     CREATE NONCLUSTERED INDEX IX_Package_PublisherId_Name
         ON registry.Package (PublisherId, Name)
@@ -209,6 +237,13 @@ IF INDEXPROPERTY(OBJECT_ID(N'registry.PackageTag'), N'IX_PackageTag_TagId_Assign
     CREATE NONCLUSTERED INDEX IX_PackageTag_TagId_AssignedAt
         ON registry.PackageTag (TagId, AssignedAt DESC)
         INCLUDE (PackageId);
+GO
+
+IF INDEXPROPERTY(OBJECT_ID(N'registry.OutboxMessage'), N'IX_OutboxMessage_Unpublished', N'IndexID') IS NULL
+    CREATE NONCLUSTERED INDEX IX_OutboxMessage_Unpublished
+        ON registry.OutboxMessage (OutboxMessageId)
+        INCLUDE (OccurredAt)
+        WHERE PublishedAt IS NULL;
 GO
 
 CREATE OR ALTER VIEW registry.vw_LatestPackageVersion
@@ -269,6 +304,8 @@ VALUES
     ('TABLE', N'PackageVersion',  'INDEX',      N'IX_PackageVersion_Package_PublishedAt', N'Query: version history of a package, newest published first.'),
     ('TABLE', N'PackageVersion',  'INDEX',      N'IX_PackageVersion_Ordering',            N'Query: latest non-deprecated version by semantic order, used by vw_LatestPackageVersion.'),
     ('TABLE', N'PackageTag',      'INDEX',      N'IX_PackageTag_TagId_AssignedAt',        N'Query: packages with a tag, most recently tagged first. The PK only serves package -> tags.'),
+    ('TABLE', N'OutboxMessage',   NULL,         NULL,                                     N'Transactional outbox: integration events written in the same transaction as the package change, published to RabbitMQ afterwards.'),
+    ('TABLE', N'OutboxMessage',   'INDEX',      N'IX_OutboxMessage_Unpublished',          N'Query: the dispatcher''s oldest unpublished events.'),
     ('VIEW',  N'vw_LatestPackageVersion', NULL, NULL,                                     N'Denormalised read model: each listed package with its latest version, licence and framework.');
 
 DECLARE @ObjectKind VARCHAR(10), @ObjectName SYSNAME, @ChildKind VARCHAR(10), @ChildName SYSNAME, @Text NVARCHAR(400);

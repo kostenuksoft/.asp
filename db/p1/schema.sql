@@ -63,6 +63,42 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID(N'cicd.Package', N'U') IS NULL
+BEGIN
+    CREATE TABLE cicd.Package
+    (
+        PackageId       BIGINT          NOT NULL,
+        PublisherSlug   NVARCHAR(100)   NOT NULL,
+        PackageName     NVARCHAR(200)   NOT NULL,
+        PackageKey      NVARCHAR(300)   NOT NULL,
+        LicensePrice    DECIMAL(18, 2)  NOT NULL,
+        IsDeleted       BIT             NOT NULL CONSTRAINT DF_Package_IsDeleted DEFAULT (0),
+        SourceChangedAt DATETIME2(3)    NULL,
+        SyncedAt        DATETIME2(3)    NOT NULL CONSTRAINT DF_Package_SyncedAt DEFAULT (SYSUTCDATETIME()),
+        CreatedAt       DATETIME2(3)    NOT NULL CONSTRAINT DF_Package_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        CreatedBy       NVARCHAR(128)   NOT NULL CONSTRAINT DF_Package_CreatedBy DEFAULT (SUSER_SNAME()),
+
+        CONSTRAINT PK_Package PRIMARY KEY CLUSTERED (PackageId),
+        CONSTRAINT CK_Package_PackageId_Positive CHECK (PackageId > 0),
+        CONSTRAINT CK_Package_LicensePrice_NonNegative CHECK (LicensePrice >= 0),
+        CONSTRAINT CK_Package_PackageKey_MatchesCopy CHECK (PackageKey = CONCAT(PublisherSlug, N'/', PackageName))
+    );
+END;
+GO
+
+IF OBJECT_ID(N'cicd.ProcessedEvent', N'U') IS NULL
+BEGIN
+    CREATE TABLE cicd.ProcessedEvent
+    (
+        EventId         UNIQUEIDENTIFIER NOT NULL,
+        EventType       NVARCHAR(200)   NOT NULL,
+        ProcessedAt     DATETIME2(3)    NOT NULL CONSTRAINT DF_ProcessedEvent_ProcessedAt DEFAULT (SYSUTCDATETIME()),
+
+        CONSTRAINT PK_ProcessedEvent PRIMARY KEY CLUSTERED (EventId)
+    );
+END;
+GO
+
 IF OBJECT_ID(N'cicd.Agent', N'U') IS NULL
 BEGIN
     CREATE TABLE cicd.Agent
@@ -188,6 +224,7 @@ BEGIN
         SizeBytes        BIGINT          NOT NULL,
         Sha256           CHAR(64)        NOT NULL,
         StorageUri       NVARCHAR(500)   NOT NULL,
+        LicensePrice     DECIMAL(18, 2)  NULL,
         RegistrySyncedAt DATETIME2(3)    NULL,
         CreatedAt        DATETIME2(3)    NOT NULL CONSTRAINT DF_Artifact_CreatedAt DEFAULT (SYSUTCDATETIME()),
         CreatedBy        NVARCHAR(128)   NOT NULL CONSTRAINT DF_Artifact_CreatedBy DEFAULT (SUSER_SNAME()),
@@ -202,8 +239,16 @@ BEGIN
         CONSTRAINT CK_Artifact_SizeBytes_Positive CHECK (SizeBytes > 0),
         CONSTRAINT CK_Artifact_Sha256_Hex CHECK (LEN(Sha256) = 64 AND Sha256 NOT LIKE '%[^0-9a-f]%'),
         CONSTRAINT CK_Artifact_PackageKey_Shape CHECK (PackageKey LIKE N'%_/_%' AND PackageKey NOT LIKE N'%/%/%'),
-        CONSTRAINT CK_Artifact_PackageKey_MatchesCopy CHECK (PackageKey = CONCAT(PublisherSlug, N'/', PackageName))
+        CONSTRAINT CK_Artifact_PackageKey_MatchesCopy CHECK (PackageKey = CONCAT(PublisherSlug, N'/', PackageName)),
+        CONSTRAINT CK_Artifact_LicensePrice_NonNegative CHECK (LicensePrice IS NULL OR LicensePrice >= 0)
     );
+END;
+GO
+
+IF COL_LENGTH(N'cicd.Artifact', N'LicensePrice') IS NULL
+BEGIN
+    ALTER TABLE cicd.Artifact ADD LicensePrice DECIMAL(18, 2) NULL;
+    EXEC(N'ALTER TABLE cicd.Artifact ADD CONSTRAINT CK_Artifact_LicensePrice_NonNegative CHECK (LicensePrice IS NULL OR LicensePrice >= 0);');
 END;
 GO
 
@@ -353,7 +398,13 @@ VALUES
     ('TABLE', N'Artifact',         'COLUMN',     N'PackageName',                             N'Copy of registry.Package.Name. Owner: Registry. Policy: snapshot; a published version never changes.'),
     ('TABLE', N'Artifact',         'COLUMN',     N'PublisherSlug',                           N'Copy of registry.Publisher.Slug. Owner: Registry. Policy: snapshot.'),
     ('TABLE', N'Artifact',         'COLUMN',     N'SemVer',                                  N'Copy of registry.PackageVersion.SemVer. Owner: Registry. Policy: snapshot.'),
-    ('TABLE', N'Artifact',         'COLUMN',     N'RegistrySyncedAt',                        N'Last time the copied columns were confirmed by a Registry event.'),
+    ('TABLE', N'Artifact',         'COLUMN',     N'RegistrySyncedAt',                        N'Last time the copied columns were confirmed by a Registry event: cicd.Package.SyncedAt when the snapshot was taken.'),
+    ('TABLE', N'Artifact',         'COLUMN',     N'LicensePrice',                            N'Copy of registry.Package.LicensePrice taken from cicd.Package when the run completed. Owner: Registry. Policy: snapshot, never updated; NULL for artefacts built before the copy existed.'),
+    ('TABLE', N'Package',          NULL,         NULL,                                       N'Local copy of registry.Package for this context''s own queries. Owner: Registry. Policy: refreshed by Registry events (queue cicd.registry-sync).'),
+    ('TABLE', N'Package',          'COLUMN',     N'PackageId',                               N'Id of registry.Package; no IDENTITY, the key is assigned by the Registry. No FOREIGN KEY across databases.'),
+    ('TABLE', N'Package',          'COLUMN',     N'SourceChangedAt',                         N'OccurredAt of the last applied Registry event; an older event is ignored (out-of-order delivery). NULL for seed rows.'),
+    ('TABLE', N'Package',          'COLUMN',     N'SyncedAt',                                N'When this copy was last written.'),
+    ('TABLE', N'ProcessedEvent',   NULL,         NULL,                                       N'Idempotency ledger: EventId of every handled integration event, written in the same transaction as the change it caused.'),
     ('TABLE', N'BuildRun',         'COLUMN',     N'RowVersion',                              N'Optimistic concurrency token checked by usp_TransitionRunStatus.'),
     ('TABLE', N'BuildRun',         'INDEX',      N'IX_BuildRun_Pipeline_QueuedAt',           N'Query: run history of one pipeline, newest first, keyset-paged. Filtered to live rows, covers the list columns.'),
     ('TABLE', N'BuildRun',         'INDEX',      N'IX_BuildRun_Status_QueuedAt',             N'Query: dispatcher scan of the oldest queued runs and the vw_ActiveBuildRun board.'),

@@ -197,3 +197,6 @@ dotnet_style_readonly_field = false
 
 [Platform.Aggregator/Resilience/ResilienceExtensions.cs]
 dotnet_diagnostic.EXTEXP0001.severity = none
+
+[Platform.EventBus/IIntegrationEventHandler.cs]
+dotnet_code_quality.CA1711.allowed_suffixes = EventHandler

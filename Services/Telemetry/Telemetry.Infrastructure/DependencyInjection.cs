@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ICrashReportRepository, CrashReportRepository>();
         services.AddScoped<IDiscussionQueries, DiscussionQueries>();
         services.AddScoped<ICrashReportQueries, CrashReportQueries>();
+        services.AddScoped<IPackageCopyRepository, PackageCopyRepository>();
 
         services.AddSingleton<IDataSeeder, DiscussionSeeder>();
         services.AddSingleton<IDataSeeder, CrashReportSeeder>();

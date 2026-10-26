@@ -349,9 +349,10 @@ BEGIN
 
     DECLARE @ToStatus VARCHAR(20) = CASE WHEN @FailedSteps > 0 THEN 'Failed' ELSE 'Succeeded' END;
 
-    INSERT INTO cicd.Artifact (PackageId, PackageKey, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri, CreatedBy)
-    SELECT p.PackageId, p.PackageKey, p.PackageName, p.PublisherSlug, p.SemVer, p.SizeBytes, p.Sha256, p.StorageUri, @CompletedBy
+    INSERT INTO cicd.Artifact (PackageId, PackageKey, PackageName, PublisherSlug, SemVer, SizeBytes, Sha256, StorageUri, LicensePrice, RegistrySyncedAt, CreatedBy)
+    SELECT p.PackageId, p.PackageKey, p.PackageName, p.PublisherSlug, p.SemVer, p.SizeBytes, p.Sha256, p.StorageUri, c.LicensePrice, c.SyncedAt, @CompletedBy
     FROM @ProducedArtifacts AS p
+    LEFT JOIN cicd.Package AS c ON c.PackageId = p.PackageId AND c.IsDeleted = 0
     WHERE NOT EXISTS (SELECT 1 FROM cicd.Artifact AS a WHERE a.Sha256 = p.Sha256);
 
     INSERT INTO cicd.ArtifactUsage (BuildRunId, ArtifactId, UsageKind, CreatedBy)

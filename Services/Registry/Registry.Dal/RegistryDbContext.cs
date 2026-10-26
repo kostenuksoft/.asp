@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Registry.Dal.Outbox;
 using Registry.Domain.Entities;
 
 namespace Registry.Dal;
@@ -17,6 +18,8 @@ public sealed class RegistryDbContext(DbContextOptions<RegistryDbContext> option
     public DbSet<Tag> Tags => Set<Tag>();
 
     public DbSet<PackageTag> PackageTags => Set<PackageTag>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public override Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,

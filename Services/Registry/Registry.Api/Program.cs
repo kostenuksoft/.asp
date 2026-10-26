@@ -1,9 +1,11 @@
 using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Platform.EventBus;
 using Platform.ServiceDefaults;
 using Registry.Api.ErrorHandling;
 using Registry.Api.Grpc;
+using Registry.Api.IntegrationEvents;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Registry.Api.HealthChecks;
 using Registry.Api.Metrics;
@@ -68,6 +70,12 @@ builder.Services.AddHealthChecks()
 builder.Services.AddGrpcHealthChecks(options =>
     options.Services.Map(string.Empty, registration => registration.Tags.Contains("database"))
 );
+
+builder.AddRabbitMQClient("messaging", settings => settings.DisableTracing = true);
+builder.Services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
+builder.Services.AddScoped<RegistryIntegrationEventService>();
+builder.Services.AddScoped<IPackageEvents>(services => services.GetRequiredService<RegistryIntegrationEventService>());
+builder.Services.AddHostedService<OutboxDispatcher>();
 
 builder.Services.AddScoped<PackageService>();
 builder.Services.AddScoped<IPackageService, CachedPackageService>();

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.RabbitMQ.Client.v7" />
+    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="OpenTelemetry.Api" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+
+</Project>

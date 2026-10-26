@@ -17,6 +17,13 @@ public sealed class PackageRepository(RegistryDbContext context) : GenericReposi
         .AsNoTracking()
         .FirstOrDefaultAsync(package => package.PackageId == packageId, cancellationToken);
 
+    public Task<Package?> GetWithPublisherAsync(
+        long packageId,
+        CancellationToken cancellationToken = default
+    ) => Set
+        .Include(package => package.Publisher)
+        .FirstOrDefaultAsync(package => package.PackageId == packageId, cancellationToken);
+
     public Task<bool> ExistsByNameAsync(
         long publisherId,
         string name,

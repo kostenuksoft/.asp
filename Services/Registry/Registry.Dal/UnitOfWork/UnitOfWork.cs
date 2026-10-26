@@ -14,7 +14,23 @@ public sealed class UnitOfWork(RegistryDbContext context) : IUnitOfWork
 
     public IPackageTagRepository PackageTags { get; } = new PackageTagRepository(context);
 
+    public IOutboxRepository Outbox { get; } = new OutboxRepository(context);
+
     public Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default
     ) => context.SaveChangesAsync(cancellationToken);
+
+    public Task BeginTransactionAsync(
+        CancellationToken cancellationToken = default
+    ) => context.Database.BeginTransactionAsync(cancellationToken);
+
+    public Task CommitAsync(
+        CancellationToken cancellationToken = default
+    ) => context.Database.CommitTransactionAsync(cancellationToken);
+
+    public Task RollbackAsync(
+        CancellationToken cancellationToken = default
+    ) => context.Database.CurrentTransaction is null
+        ? Task.CompletedTask
+        : context.Database.RollbackTransactionAsync(cancellationToken);
 }

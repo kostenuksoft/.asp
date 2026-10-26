@@ -160,12 +160,17 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
 
             Pipeline pipeline = await unitOfWork.Pipelines.GetByIdAsync(run.PipelineId, cancellationToken)
                 ?? throw new NotFoundException($"Pipeline {run.PipelineId} was not found.");
-            if (pipeline.PackageId is null || pipeline.PackageKey is null)
+            if (pipeline.PackageId is null)
             {
                 throw new BusinessConflictException($"Pipeline '{pipeline.Name}' is not linked to a registry package.");
             }
 
-            string[] keyParts = pipeline.PackageKey.Split('/');
+            Package package = await unitOfWork.Packages.GetByIdAsync(pipeline.PackageId.Value, cancellationToken)
+                ?? throw new BusinessConflictException($"Package {pipeline.PackageId} has no local copy yet; it arrives with the Registry's events.");
+            if (package.IsDeleted)
+            {
+                throw new BusinessConflictException($"Package '{package.PackageKey}' was deleted in the Registry.");
+            }
 
             await unitOfWork.BuildRuns.TransitionStatusAsync(
                 buildRunId,
@@ -180,10 +185,12 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
             {
                 Artifact artifact = new()
                 {
-                    PackageId = pipeline.PackageId.Value,
-                    PackageKey = pipeline.PackageKey,
-                    PublisherSlug = keyParts[0],
-                    PackageName = keyParts[1],
+                    PackageId = package.PackageId,
+                    PackageKey = package.PackageKey,
+                    PublisherSlug = package.PublisherSlug,
+                    PackageName = package.PackageName,
+                    LicensePrice = package.LicensePrice,
+                    RegistrySyncedAt = package.SyncedAt,
                     SemVer = produced.SemVer,
                     SizeBytes = produced.SizeBytes,
                     Sha256 = produced.Sha256,

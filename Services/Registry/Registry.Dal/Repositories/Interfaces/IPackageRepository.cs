@@ -9,6 +9,11 @@ public interface IPackageRepository : IGenericRepository<Package>
         CancellationToken cancellationToken = default
     );
 
+    Task<Package?> GetWithPublisherAsync(
+        long packageId,
+        CancellationToken cancellationToken = default
+    );
+
     Task<bool> ExistsByNameAsync(
         long publisherId,
         string name,

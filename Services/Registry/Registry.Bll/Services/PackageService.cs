@@ -10,7 +10,13 @@ using Registry.Domain.Exceptions;
 
 namespace Registry.Bll.Services;
 
-public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<PackageService> logger) : IPackageService
+public sealed class PackageService(
+    IUnitOfWork unitOfWork,
+    IPackageEvents packageEvents,
+    IMapper mapper,
+    ILogger<PackageService> logger
+)
+    : IPackageService
 {
     internal const int MaxTopPackages = 50;
 
@@ -71,8 +77,27 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogg
         }
 
         Package package = new(input.PublisherId, input.Name, input.Description, input.ProjectUrl, input.LicensePrice);
-        await unitOfWork.Packages.AddAsync(package, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        bool committed = false;
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await unitOfWork.Packages.AddAsync(package, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            packageEvents.PackageCreated(package);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+            committed = true;
+        }
+        finally
+        {
+            if (!committed)
+            {
+                await unitOfWork.RollbackAsync(CancellationToken.None);
+            }
+        }
+
+        await packageEvents.PublishPendingAsync(CancellationToken.None);
 
         activity?.SetTag("package.id", package.PackageId);
         logger.LogInformation(
@@ -83,6 +108,37 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogg
         );
 
         return mapper.Map<PackageDto>(package);
+    }
+
+    public async Task RenameAsync(
+        long packageId,
+        RenamePackageDto input,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(input);
+
+        using Activity? activity = s_activitySource.StartActivity("RenamePackage");
+        activity?.SetTag("package.id", packageId);
+
+        Package package = await FindWithPublisherAsync(packageId, cancellationToken);
+        if (await unitOfWork.Packages.ExistsByNameAsync(package.PublisherId, input.Name, cancellationToken))
+        {
+            throw new ConflictException($"Package '{package.Publisher.Slug}/{input.Name}' already exists.");
+        }
+
+        string previousName = package.Name;
+        package.Rename(input.Name);
+        packageEvents.PackageRenamed(package, previousName);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await packageEvents.PublishPendingAsync(CancellationToken.None);
+
+        logger.LogInformation(
+            "Package {PackageId} renamed from '{PreviousPackageKey}' to '{PackageKey}'",
+            packageId,
+            $"{package.Publisher.Slug}/{previousName}",
+            $"{package.Publisher.Slug}/{package.Name}"
+        );
     }
 
     public async Task ChangeLicensePriceAsync(
@@ -96,10 +152,12 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogg
         using Activity? activity = s_activitySource.StartActivity("ChangeLicensePrice");
         activity?.SetTag("package.id", packageId);
 
-        Package package = await FindAsync(packageId, cancellationToken);
+        Package package = await FindWithPublisherAsync(packageId, cancellationToken);
         decimal previousPrice = package.LicensePrice;
         package.ChangeLicensePrice(input.LicensePrice);
+        packageEvents.LicensePriceChanged(package, previousPrice);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await packageEvents.PublishPendingAsync(CancellationToken.None);
 
         logger.LogInformation(
             "Package {PackageId} licence price changed from {PreviousPrice} to {LicensePrice}",
@@ -173,10 +231,18 @@ public sealed class PackageService(IUnitOfWork unitOfWork, IMapper mapper, ILogg
         CancellationToken cancellationToken
     )
     {
-        Package package = await FindAsync(packageId, cancellationToken);
+        Package package = await FindWithPublisherAsync(packageId, cancellationToken);
         unitOfWork.Packages.Delete(package);
+        packageEvents.PackageDeleted(package);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await packageEvents.PublishPendingAsync(CancellationToken.None);
     }
+
+    private async Task<Package> FindWithPublisherAsync(
+        long packageId,
+        CancellationToken cancellationToken
+    ) => await unitOfWork.Packages.GetWithPublisherAsync(packageId, cancellationToken)
+        ?? throw new EntityNotFoundException($"Package {packageId} was not found.");
 
     private async Task<Package> FindAsync(
         long packageId,

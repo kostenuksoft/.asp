@@ -8,10 +8,15 @@ string cicdCreationScript = string.Join(
     File.ReadAllText(Path.Combine(cicdScripts, "seed.sql"))
 );
 
+const string ContainerGroupLabel = "com.docker.compose.project=devhub";
+
 IResourceBuilder<ParameterResource> sqlPassword = builder.AddParameter("sql-password", secret: true);
 
 IResourceBuilder<SqlServerServerResource> sql = builder.AddSqlServer("sql", sqlPassword)
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithContainerName("devhub-sql")
+    .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
+    .WithLifetime(ContainerLifetime.Persistent);
 
 IResourceBuilder<SqlServerDatabaseResource> cicdDb = sql
     .AddDatabase("CicdDb", "DevHub_Cicd")
@@ -20,16 +25,31 @@ IResourceBuilder<SqlServerDatabaseResource> cicdDb = sql
 IResourceBuilder<SqlServerDatabaseResource> registryDb = sql.AddDatabase("RegistryDb", "DevHub_Registry");
 
 IResourceBuilder<MongoDBServerResource> mongo = builder.AddMongoDB("mongo")
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithContainerName("devhub-mongo")
+    .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
+    .WithLifetime(ContainerLifetime.Persistent);
 
 IResourceBuilder<MongoDBDatabaseResource> telemetryDb = mongo.AddDatabase("TelemetryDb", "devhub_telemetry");
 
 IResourceBuilder<RedisResource> redis = builder.AddRedis("redis")
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithContainerName("devhub-redis")
+    .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
+    .WithLifetime(ContainerLifetime.Persistent);
+
+IResourceBuilder<RabbitMQServerResource> messaging = builder.AddRabbitMQ("messaging")
+    .WithDataVolume()
+    .WithManagementPlugin()
+    .WithContainerName("devhub-rabbitmq")
+    .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
+    .WithLifetime(ContainerLifetime.Persistent);
 
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
     .WaitFor(cicdDb)
+    .WithReference(messaging)
+    .WaitFor(messaging)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
@@ -37,11 +57,15 @@ IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registr
     .WaitFor(registryDb)
     .WithReference(redis)
     .WaitFor(redis)
+    .WithReference(messaging)
+    .WaitFor(messaging)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
     .WithReference(telemetryDb)
     .WaitFor(telemetryDb)
+    .WithReference(messaging)
+    .WaitFor(messaging)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator")
@@ -64,4 +88,6 @@ builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WaitFor(aggregator)
     .WithHttpHealthCheck("/health/ready");
 
-builder.Build().Run();
+builder
+    .Build()
+    .Run();

@@ -1,6 +1,7 @@
 using System.Data;
 using Cicd.Dal.Errors;
 using Cicd.Domain.Exceptions;
+using Dapper;
 using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
@@ -12,6 +13,12 @@ public abstract class RepositoryBase(SqlConnection connection, Func<SqlTransacti
     protected SqlConnection Connection { get; } = connection;
 
     protected SqlTransaction? Transaction => currentTransaction();
+
+    protected CommandDefinition Command(
+        string sql,
+        object? parameters,
+        CancellationToken cancellationToken
+    ) => new(sql, parameters, Transaction, CommandTimeoutSeconds, cancellationToken: cancellationToken);
 
     protected async Task EnsureOpenAsync(CancellationToken cancellationToken)
     {

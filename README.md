@@ -9,7 +9,7 @@ DevHub – внутрішня платформа розробників одні
 
 | № | Контекст | БД | Технологія | Сутності / колекції |
 | --- | --- | --- | --- | --- |
-| 1 | Збірки CI/CD | `DevHub_Cicd` | SQL Server + ADO.NET і Dapper | `Pipeline`, `Agent`, `BuildRun`, `BuildRunDetail`, `BuildStep`, `Artifact`, `ArtifactUsage`, `RunStatusHistory` |
+| 1 | Збірки CI/CD | `DevHub_Cicd` | SQL Server + ADO.NET і Dapper | `Pipeline`, `Agent`, `BuildRun`, `BuildRunDetail`, `BuildStep`, `Artifact`, `ArtifactUsage`, `RunStatusHistory`, `Package` (копія реєстру) |
 | 2 | Реєстр пакетів | `DevHub_Registry` | SQL Server + EF Core (Code First) | `Publisher`, `Package`, `PackageVersion`, `PackageManifest`, `Tag`, `PackageTag` |
 | 3 | Телеметрія й обговорення | `devhub_telemetry` | MongoDB | `buildEvents`, `crashReports`, `discussions`, `packageInsights` |
 
@@ -53,6 +53,8 @@ DevHub – внутрішня платформа розробників одні
 | Поле | Де зберігається | Джерело (власник даних) | Політика узгодженості |
 | --- | --- | --- | --- |
 | `cicd.Pipeline.PackageKey` | БД збірок (`DevHub_Cicd`) | `registry.Publisher.Slug` + `registry.Package.Name` (Реєстр) | оновлюється подіями з Реєстру |
+| `cicd.Package.PackageName`, `cicd.Package.PublisherSlug`, `cicd.Package.PackageKey`, `cicd.Package.LicensePrice` | БД збірок (`DevHub_Cicd`) | `registry.Package.Name`, `registry.Publisher.Slug`, `registry.Package.LicensePrice` (Реєстр) | оновлюється подіями з Реєстру |
+| `cicd.Artifact.LicensePrice` | БД збірок (`DevHub_Cicd`) | `registry.Package.LicensePrice` через `cicd.Package` (Реєстр) | знімок на момент збірки, не оновлюється |
 | `cicd.Artifact.PackageName` | БД збірок (`DevHub_Cicd`) | `registry.Package.Name` (Реєстр) | знімок на момент збірки, не оновлюється |
 | `cicd.Artifact.PublisherSlug` | БД збірок (`DevHub_Cicd`) | `registry.Publisher.Slug` (Реєстр) | знімок на момент збірки, не оновлюється |
 | `cicd.Artifact.PackageKey` | БД збірок (`DevHub_Cicd`) | `registry.Publisher.Slug` + `registry.Package.Name` (Реєстр) | знімок на момент збірки, не оновлюється |
@@ -256,9 +258,9 @@ Gateway сервіс доступний на `http://localhost:5000`, напря
 Unit of Work відкриває одне з’єднання на HTTP-запит, і всі репозиторії працюють через нього та
 через одну поточну транзакцію. Найважливіша операція – завершення запуску
 (`POST /api/build-runs/{id}/complete`), що в одній транзакції переводить запуск у `Succeeded`
-процедурою `usp_TransitionRunStatus`, додає артефакти, зв’язує їх із запуском і копіює з конвеєра
-Id, ключ та назву пакета як знімок за політикою дублювання, тож артефакт не залежить від того, що
-згодом станеться з пакетом у Реєстрі. Збій будь-якого кроку відкочує транзакцію повністю. Статус
+процедурою `usp_TransitionRunStatus`, додає артефакти, зв’язує їх із запуском і копіює з локальної
+копії пакета `cicd.Package` його Id, ключ, назву й ціну ліцензії як знімок за політикою дублювання, тож
+артефакт не залежить від того, що згодом станеться з пакетом у Реєстрі. Збій будь-якого кроку відкочує транзакцію повністю. Статус
 запуску тоді лишається `Running`.
 
 Рівень ізоляції – `READ COMMITTED`. Процедури самі блокують рядок, який змінюють
@@ -982,3 +984,174 @@ Dashboard показує стан кожного ресурсу, а `WaitFor` ч
 ![Відповідь /health/ready з Degraded при зупиненому Redis](docs/screenshots/health-ready-degraded.png)
 
 ![Resources: сервіси зі станом Unhealthy при зупиненому SQL Server](docs/screenshots/resources-health.png)
+
+## Подієва взаємодія через RabbitMQ
+
+У політиці дублювання частину копій позначено як «оновлюється подіями з Реєстру»: `cicd.Pipeline.PackageKey`,
+назва й ключ пакета в `discussions` і `packageInsights`. Тепер ці події існують. Реєстр публікує в RabbitMQ
+кожну зміну пакета, а сервіс збірок і сервіс телеметрії оновлюють свої копії самі, не звертаючись до реєстру.
+Копія відстає від реєстру на частки секунди. Поля-знімки події не змінюють.
+
+### RabbitMQ в AppHost
+
+`AppHost.cs` додає брокер викликом `AddRabbitMQ("messaging").WithDataVolume().WithManagementPlugin()`. Том
+зберігає черги й повідомлення між перезапусками, а плагін керування відкриває веб-інтерфейс: у Dashboard це
+ендпоінт `management` ресурсу `messaging`, користувач `guest`, пароль – параметр `messaging-password` у user
+secrets AppHost. Посилання на брокер із `WaitFor` отримують `registry-api`, який публікує події, та
+`cicd-api` і `telemetry-api`, які їх споживають. Кожен сервіс підключається викликом
+`builder.AddRabbitMQClient("messaging")` з пакета `Aspire.RabbitMQ.Client.v7`, що реєструє один
+`IConnection` на застосунок і health check брокера; канали `IChannel` з асинхронним API RabbitMQ.Client 7.x
+сервіс відкриває для окремих операцій, а з’єднання після перезапуску брокера відновлюється само разом з
+підписками споживачів. Звичайний пакет `Aspire.RabbitMQ.Client` версії 9.5.2 залежить від
+RabbitMQ.Client 6.x, тому не підходить. Вбудоване трасування клієнта вимкнено (`DisableTracing = true`),
+бо контекст через брокер передає власний код (розділ «Трасування»).
+
+Контейнери SQL Server, MongoDB, Redis і RabbitMQ мають сталі імена `devhub-sql`, `devhub-mongo`,
+`devhub-redis` і `devhub-rabbitmq`, мітку `com.docker.compose.project=devhub`, за якою Docker Desktop
+показує їх однією групою, і життєвий цикл `ContainerLifetime.Persistent`. Після зупинки AppHost вони
+працюють далі, а наступний запуск бере ті самі контейнери; зупиняє їх `docker stop`.
+
+### Топологія
+
+Топологію оголошує код під час старту (`Platform.EventBus/EventBusTopology.cs`). Повторне оголошення тієї
+самої черги нічого не змінює.
+
+| Об’єкт | Тип | Параметри |
+| --- | --- | --- |
+| `registry-events` | exchange, topic, durable | події реєстру з ключами `package.*` |
+| `registry-events.dlx` | exchange, direct, durable | dead letter exchange |
+| `cicd.registry-sync` | черга, durable | binding `package.*`; `x-dead-letter-exchange` = `registry-events.dlx`, `x-dead-letter-routing-key` = `cicd.registry-sync` |
+| `telemetry.registry-sync` | черга, durable | binding `package.renamed`; DLX так само, з ключем `telemetry.registry-sync` |
+| `<черга>.retry` | черга, durable | `x-message-ttl` 5000; після TTL повідомлення повертається в основну чергу |
+| `<черга>.dlq` | черга, durable | прив’язана до `registry-events.dlx` з ключем основної черги |
+
+Сервіс збірок тримає копію всього пакета, тому підписаний на всі події пакетів. Телеметрії потрібна лише
+назва, і її черга отримує тільки перейменування. Dead letter exchange має тип direct, а кожна черга передає
+в нього власну назву як ключ. Повідомлення, відхилене сервісом збірок, потрапляє лише в
+`cicd.registry-sync.dlq`, а не в DLQ кожного споживача.
+
+![Черги в Management UI: основні, retry з TTL і DLQ обох споживачів](docs/screenshots/rabbitmq-queues.png)
+
+![Exchange registry-events типу topic і його bindings](docs/screenshots/rabbitmq-exchange.png)
+
+### Події реєстру
+
+| Подія | Ключ | Операція реєстру | Споживачі |
+| --- | --- | --- | --- |
+| `PackageCreatedEvent` | `package.created` | `POST /api/packages` | збірки |
+| `PackageRenamedEvent` | `package.renamed` | `PUT /api/packages/{id}/name` | збірки, телеметрія |
+| `PackageLicensePriceChangedEvent` | `package.license_price_changed` | `PUT /api/packages/{id}/license-price` | збірки |
+| `PackageDeletedEvent` | `package.deleted` | `DELETE /api/packages/{id}` | збірки |
+
+Базовий record `IntegrationEvent` у `Platform.EventBus` має `EventId`, `OccurredAt` і `CorrelationId`.
+Конкретні події – незмінні record у `Services/Registry/Registry.Api/IntegrationEvents/Events/`. Їхні копії
+лише з тими полями, які читає споживач, лежать у папках `IntegrationEvents` сервісу збірок і сервісу
+телеметрії; спільної збірки з контрактами немає. Кожна подія несе повний поточний знімок пакета: Id, slug
+видавця, назву, ключ і ціну ліцензії, а також попереднє значення зміненого поля. Тому споживач оновить копію
+з будь-якої події, навіть якщо пропустив `PackageCreatedEvent`. Перейменування – нова операція реєстру. Назва
+входить у ключ `<publisher>/<name>`, отже разом з нею змінюється ключ, а посилання за Id лишаються чинними.
+
+### Публікація після збереження
+
+Подія не може піти раніше за зміну, яку описує. `PackageService` записує подію в таблицю
+`registry.OutboxMessage` тим самим `SaveChangesAsync`, що й зміну пакета, а одразу після збереження викликає
+`PublishPendingAsync`. Якщо запис у базу не вдався, події немає навіть у таблиці. Створення пакета загорнуто
+в явну транзакцію, бо Id, потрібний події, з’являється тільки після першого збереження. `RabbitMqEventPublisher`
+серіалізує подію в JSON (`System.Text.Json`, camelCase) і публікує її з `Persistent = true`, тож повідомлення
+переживе перезапуск брокера; `ContentType` має значення `application/json`, `MessageId` дорівнює `EventId`,
+у `Type` стоїть назва події, а заголовки `x-correlation-id` та `x-schema-version` несуть ідентифікатор запиту
+й версію схеми. Канал працює з підтвердженнями видавця, тому опублікованим рядок стає лише тоді, коли брокер
+прийняв повідомлення.
+
+Коли брокер недоступний, запит однаково отримує 204, а рядок лишається неопублікованим разом з текстом
+помилки. `OutboxDispatcher` кожні 5 секунд перевіряє таблицю й публікує рядки, старші за 10 секунд. Під час
+перевірки із зупиненим RabbitMQ зміна ціни відповіла за 62 мс; після запуску брокера подію опубліковано з
+чотирнадцятої спроби, і копія в сервісі збірок отримала нову ціну.
+
+### Споживачі
+
+`RabbitMqConsumer` у `Platform.EventBus` – базовий `BackgroundService`. У `ExecuteAsync` він створює канал,
+оголошує топологію своєї черги, задає `BasicQos` з `prefetchCount` 10 і підписується через
+`AsyncEventingBasicConsumer` з `BasicConsumeAsync(autoAck: false)`. З кожного повідомлення він бере тип із
+`BasicProperties.Type`, десеріалізує тіло й передає подію обробнику цього типу, створеному в окремому
+DI-scope, тож репозиторії й Unit of Work живуть рівно стільки, скільки обробка одного повідомлення; сервіси
+успадковують від нього `RegistryEventsConsumer`, де задано чергу, ключі й типи подій, і реєструють його
+через `AddHostedService`. Під час зупинки застосунку споживач скасовує підписку за
+`stoppingToken` і чекає, поки завершиться обробка поточного повідомлення.
+
+| Результат обробки | Дія | Рівень логу |
+| --- | --- | --- |
+| Успіх | `BasicAckAsync` | Information |
+| Некоректний JSON, невідомий тип, новіша версія схеми, помилка валідації | `BasicNackAsync(requeue: false)` → `registry-events.dlx` → DLQ | Error |
+| Тимчасовий збій: база недоступна, таймаут | повторна публікація в `<черга>.retry` з `x-retry-count` + 1, оригінал підтверджується | Warning |
+| Невдала третя повторна спроба | `BasicNackAsync(requeue: false)` → DLQ | Error |
+
+Повторювати через requeue не можна: повернене повідомлення приходить без змін, і лічильник у заголовку не
+зростає. Тому споживач публікує повідомлення заново, причому не в `registry-events`, а через стандартний
+exchange прямо в чергу `.retry` свого споживача. Такий повтор не дістається іншим підписникам, а 5 секунд TTL дають
+базі час відновитися. Кожен запис логу обробки має `EventId`, тип події, `CorrelationId`, назву черги й номер
+спроби; обробники додають Id пакета.
+
+### Ідемпотентність і порядок подій
+
+RabbitMQ доставляє повідомлення щонайменше один раз, і та сама подія може прийти двічі. Обробники сервісу
+збірок (`Services/Cicd/Cicd.Api/IntegrationEvents/Handlers/`) в одній транзакції Unit of Work вставляють
+`EventId` у таблицю `cicd.ProcessedEvent` з первинним ключем `EventId` і оновлюють копію. Порушення ключа
+(помилка 2627) означає, що подію вже оброблено: обробник записує це в лог і відкочує транзакцію. Копія
+змінюється, тільки якщо `OccurredAt` події новіший за `SourceChangedAt` рядка. Подія, що після повторів прийшла
+пізніше за новішу, нічого не перезаписує.
+
+MongoDB сервісу телеметрії працює без набору реплік, тож транзакцій на кілька документів там немає. Його
+`UpdateMany` змінює лише документи, у яких `packageSyncedAt` не новіший за подію, і повторне застосування тієї
+самої події нічого не змінює. Після оновлення `EventId` записується в колекцію `processedEvents` з унікальним
+`_id`. Оновлення збільшує й `version` обговорення: редагування, почате до перейменування, отримає 409 і не
+запише стару назву назад.
+
+### Реплікація копій
+
+| Копія | Що робить подія |
+| --- | --- |
+| `cicd.Package` (нова таблиця, локальний довідник пакетів) | вставляє або оновлює назву, ключ, видавця й ціну; видалення позначає `IsDeleted` |
+| `cicd.Pipeline.PackageKey` | отримує новий ключ після перейменування |
+| `discussions.packageName`, `packageKey`, `publisherSlug` | нові значення в усіх обговореннях пакета |
+| `packageInsights.packageName`, `packageKey`, `publisherSlug` | те саме для зведень |
+| `cicd.Artifact`, `crashReports`, `buildEvents` | нічого, це знімки |
+
+Завершення запуску збірки бере назву, ключ і ціну ліцензії з `cicd.Package`, і артефакт зберігає знімок ціни
+в новому стовпці `cicd.Artifact.LicensePrice`. Після зміни ціни в реєстрі нова ціна з’являється в
+`cicd.Package` за кілька секунд; ціна вже зібраних артефактів лишається тією, що була на момент збірки, а
+артефакти, зібрані до появи копії, мають у цьому стовпці NULL, бо ціни на той момент сервіс збірок не знав.
+
+### Трасування
+
+Перед публікацією `TracePropagation` створює span типу Producer і записує його контекст у заголовок
+`traceparent` у форматі W3C через пропагатор OpenTelemetry. Споживач читає заголовок (значення приходить як
+`byte[]`), відновлює контекст і починає span типу Consumer з тегами `messaging.system`,
+`messaging.destination.name` і `messaging.message.id`. `Platform.ServiceDefaults` підключає джерело
+`Platform.Messaging`, тому запит до Gateway, публікацію, обробку в обох сервісах і запити до баз видно в
+одному trace. Рядок outbox зберігає контекст запиту, і подія, яку диспетчер опублікував через хвилину, однаково
+потрапляє в trace свого запиту. Логи обох споживачів можна відфільтрувати за `CorrelationId` з заголовка
+`x-correlation-id`.
+
+![Trace перейменування: HTTP-запит, публікація в registry-events, обробка в cicd-api і telemetry-api, запити до баз](docs/screenshots/trace-http-publish-consume.png)
+
+### Перевірка
+
+1. Змініть ціну:
+   `curl -i -X PUT $GW/api/packages/1/license-price -H "Content-Type: application/json" -d '{"licensePrice":59.00}'`.
+   За кілька секунд `SELECT * FROM cicd.Package` у базі `DevHub_Cicd` показує 59.00 для пакета 1, а
+   артефакт 0.9.1 у `cicd.Artifact` зберігає 49.00.
+2. Перейменуйте пакет:
+   `curl -i -X PUT $GW/api/packages/2/name -H "Content-Type: application/json" -d '{"name":"devhub-identity"}'`.
+   Обидва обговорення пакета 2, рядок `cicd.Package` і конвеєр «devhub-auth CI» отримують ключ
+   `platform-team/devhub-identity`, а артефакти й звіт про збій зберігають стару назву.
+3. У Management UI опублікуйте ту саму подію ще раз з тим самим `message_id`. Лог споживача містить запис
+   «Duplicate … skipped», у `cicd.ProcessedEvent` нового рядка немає.
+4. У Dashboard зупиніть `cicd-api`, змініть кілька цін і запустіть сервіс знову. Поки його зупинено,
+   повідомлення чекають у `cicd.registry-sync`, а після запуску всі обробляються.
+5. Опублікуйте в `registry-events` з ключем `package.license_price_changed` тіло з некоректним JSON.
+   Повідомлення потрапляє в `cicd.registry-sync.dlq` із заголовком `x-death` і причиною `rejected`.
+6. Зупиніть `sql` і опублікуйте коректну подію. У лозі `cicd-api` з’являються записи «Retry 1/3», «2/3» і
+   «3/3» з інтервалом 5 секунд, після них повідомлення йде в DLQ.
+
+![Повідомлення з некоректним JSON у cicd.registry-sync.dlq із заголовком x-death](docs/screenshots/rabbitmq-dlq.png)
