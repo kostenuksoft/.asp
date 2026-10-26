@@ -28,6 +28,123 @@ DevHub – внутрішня платформа розробників одні
 `versionKey` = `"<publisher>/<package>@<semver>"`, `runKey` = `"<pipeline>#<run number>"`. Це
 дубльовані поля, тож кожне з них є в таблиці нижче.
 
+## Зміст
+
+1\. [Політики стійкості клієнтів Aggregator](#політики-стійкості-клієнтів-aggregator)\
+2\. [Політика дублювання](#політика-дублювання)\
+3\. [Ключі та конкурентність](#ключі-та-конкурентність)\
+4\. [ERD](#erd)
+
+<details>
+<summary>5. <a href="#розгортання">Розгортання</a></summary>
+
+5.1. [Проєкт №1 – `DevHub_Cicd`](#проєкт-1--devhub_cicd)\
+5.2. [Проєкт №2 – `DevHub_Registry`](#проєкт-2--devhub_registry)\
+5.3. [Проєкт №3 – `devhub_telemetry`](#проєкт-3--devhub_telemetry)\
+5.4. [Перевірка індексів і обмежень вручну](#перевірка-індексів-і-обмежень-вручну)
+
+</details>
+
+<details>
+<summary>6. <a href="#сервіс-збірок-cicd">Сервіс збірок CI/CD</a></summary>
+
+6.1. [Схема рішення](#схема-рішення)\
+6.2. [Що потрібно для запуску](#що-потрібно-для-запуску)\
+6.3. [Запуск через Aspire](#запуск-через-aspire)\
+6.4. [Транзакції, рівень ізоляції й таймаути](#транзакції-рівень-ізоляції-й-таймаути)\
+6.5. [Помилки](#помилки)\
+6.6. [Приклади запитів (curl)](#приклади-запитів-curl)
+
+</details>
+
+<details>
+<summary>7. <a href="#сервіс-реєстру-пакетів">Сервіс реєстру пакетів</a></summary>
+
+7.1. [Запуск і застосування міграцій](#запуск-і-застосування-міграцій)\
+7.2. [Початкові дані](#початкові-дані)\
+7.3. [Пагінація, фільтрація й сортування](#пагінація-фільтрація-й-сортування)\
+7.4. [Валідація й помилки](#валідація-й-помилки)\
+7.5. [Логування](#логування)\
+7.6. [Знімки екрана](#знімки-екрана)
+
+</details>
+
+<details>
+<summary>8. <a href="#сервіс-телеметрії-та-обговорень">Сервіс телеметрії та обговорень</a></summary>
+
+8.1. [Схема шарів](#схема-шарів)\
+8.2. [Запуск](#запуск)\
+8.3. [Приклади запитів (curl)](#приклади-запитів-curl-1)\
+8.4. [Знімки екрана](#знімки-екрана-1)
+
+</details>
+
+<details>
+<summary>9. <a href="#платформа-на-net-aspire">Платформа на .NET Aspire</a></summary>
+
+9.1. [Схема рішення](#схема-рішення-1)\
+9.2. [Запуск платформи](#запуск-платформи)\
+9.3. [Маршрути Gateway](#маршрути-gateway)\
+9.4. [Приклади запитів через Gateway (curl)](#приклади-запитів-через-gateway-curl)\
+9.5. [Aggregator](#aggregator)\
+9.6. [Логування й трасування](#логування-й-трасування)
+
+</details>
+
+<details>
+<summary>10. <a href="#grpc-і-кешування">gRPC і кешування</a></summary>
+
+10.1. [Redis в AppHost](#redis-в-apphost)\
+10.2. [Дворівневий кеш реєстру](#дворівневий-кеш-реєстру)\
+10.3. [Інвалідація після запису](#інвалідація-після-запису)\
+10.4. [Якщо Redis недоступний](#якщо-redis-недоступний)\
+10.5. [gRPC-контракти](#grpc-контракти)\
+10.6. [Aggregator на gRPC](#aggregator-на-grpc)\
+10.7. [Метрики кешу](#метрики-кешу)\
+10.8. [Порівняння HTTP і gRPC](#порівняння-http-і-grpc)
+
+</details>
+
+<details>
+<summary>11. <a href="#стійкість-метрики-й-health-checks">Стійкість, метрики й health checks</a></summary>
+
+11.1. [Політики стійкості](#політики-стійкості)\
+11.2. [Бізнес-метрики](#бізнес-метрики)\
+11.3. [Health checks](#health-checks)\
+11.4. [Перевірка](#перевірка)
+
+</details>
+
+<details>
+<summary>12. <a href="#подієва-взаємодія-через-rabbitmq">Подієва взаємодія через RabbitMQ</a></summary>
+
+12.1. [RabbitMQ в AppHost](#rabbitmq-в-apphost)\
+12.2. [Топологія](#топологія)\
+12.3. [Події реєстру](#події-реєстру)\
+12.4. [Публікація після збереження](#публікація-після-збереження)\
+12.5. [Споживачі](#споживачі)\
+12.6. [Ідемпотентність і порядок подій](#ідемпотентність-і-порядок-подій)\
+12.7. [Реплікація копій](#реплікація-копій)\
+12.8. [Трасування](#трасування)\
+12.9. [Перевірка](#перевірка-1)
+
+</details>
+
+<details>
+<summary>13. <a href="#автентифікація-та-авторизація">Автентифікація та авторизація</a></summary>
+
+13.1. [Схема рішення](#схема-рішення-2)\
+13.2. [Секрети й запуск](#секрети-й-запуск)\
+13.3. [Auth Service: ASP.NET Identity і JWT](#auth-service-aspnet-identity-і-jwt)\
+13.4. [Duende IdentityServer](#duende-identityserver)\
+13.5. [Keycloak і Pulumi](#keycloak-і-pulumi)\
+13.6. [Перевірка дозволів у сервісах](#перевірка-дозволів-у-сервісах)\
+13.7. [Матриця дозволів](#матриця-дозволів)\
+13.8. [Декодовані JWT](#декодовані-jwt)\
+13.9. [Колекція Postman](#колекція-postman)
+
+</details>
+
 ## Політики стійкості клієнтів Aggregator
 
 Агрегатор викликає три сервіси через gRPC, і кожен клієнт має власну політику. Критичні сервіси –
@@ -630,7 +747,9 @@ flowchart LR
    dotnet user-secrets set "Parameters:sql-password" "Repetovskyi#Sql26" --project Platform.AppHost
    ```
 
-4. За потреби збережіть ключі ліцензій AutoMapper і Lucky Penny (розділи сервісів вище).
+4. За потреби збережіть ключі ліцензій AutoMapper і Lucky Penny (розділи сервісів вище). Секрети
+   автентифікації (`jwt-secret`, паролі баз і клієнтів) перелічено в розділі «Автентифікація та
+   авторизація», підрозділ «Секрети й запуск».
 5. З кореня репозиторію запустіть AppHost:
 
    ```bash
@@ -638,7 +757,7 @@ flowchart LR
    ```
 
 6. Відкрийте Aspire Dashboard за посиланням із консолі й дочекайтеся статусу Running для всіх
-   дванадцяти ресурсів.
+   ресурсів.
 7. Надсилайте запити на Gateway: `http://localhost:5000`.
 
 Перший запуск завантажує образи SQL Server 2022, MongoDB 8 і Redis. Дані лежать у томах Docker, тому
@@ -663,6 +782,8 @@ flowchart LR
 | `/api/pipelines`, `/api/build-runs`, `/api/agents` | `cicd` | `cicd-api` |
 | `/api/packages`, `/api/tags` | `registry` | `registry-api` |
 | `/api/discussions`, `/api/crash-reports` | `telemetry` | `telemetry-api` |
+| `/auth`, `/users` | `auth` | `auth-api` |
+| `/api/secrets` | `secrets` | `secrets-api` |
 
 `CorrelationIdMiddleware` стоїть перед `MapReverseProxy`. Якщо клієнт не надіслав заголовок
 `X-Correlation-Id`, Gateway генерує GUID і записує факт генерації в лог. Ідентифікатор потрапляє в
@@ -674,23 +795,29 @@ flowchart LR
 
 ```bash
 GW=http://localhost:5000
+TOKEN=$(curl -s -X POST $GW/auth/login -H "Content-Type: application/json" \
+  -d '{"userName":"kostenuk.admin","password":"Kostenuk#Admin26"}' | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
+AUTH="Authorization: Bearer $TOKEN"
 
-curl -i $GW/api/pipelines
+curl -i -H "$AUTH" $GW/api/pipelines
 
-curl -i "$GW/api/packages?page=1&pageSize=5"
+curl -i -H "$AUTH" "$GW/api/packages?page=1&pageSize=5"
 
-curl -i "$GW/api/discussions?packageKey=platform-team/devhub-auth"
+curl -i -H "$AUTH" "$GW/api/discussions?packageKey=platform-team/devhub-auth"
 
-curl -i -X PUT $GW/api/packages/4/license-price -H "Content-Type: application/json" \
+curl -i -X PUT -H "$AUTH" $GW/api/packages/4/license-price -H "Content-Type: application/json" \
   -d '{"licensePrice":12.50}'
 
-curl -i -H "X-Correlation-Id: repetovskyi-card-run1" $GW/api/aggregator/build-runs/1/full
+curl -i -H "$AUTH" -H "X-Correlation-Id: repetovskyi-card-run1" $GW/api/aggregator/build-runs/1/full
 
-curl -i $GW/api/aggregator/build-runs/999/full
+curl -i -H "$AUTH" $GW/api/aggregator/build-runs/999/full
 ```
 
 Кожна відповідь має заголовок `X-Correlation-Id`; ідентифікатор, який надіслав клієнт, Gateway не
-змінює. `PUT` повертає 204. Картка запуску 1 повертає 200, картка запуску, якого немає, – 404.
+змінює. `PUT` повертає 204. Картка запуску 1 повертає 200, картка запуску, якого немає, – 404. Без
+заголовка `Authorization` Gateway відповідає 401; токен і права описано в розділі «Автентифікація та
+авторизація», там само є секрети, без яких платформа не стартує. Приклади в наступних розділах
+передають той самий `$AUTH`.
 
 ### Aggregator
 
@@ -814,10 +941,10 @@ Gateway → Aggregator → сервіси → бази даних, і викли
 
 Перевірити кеш можна через Gateway:
 
-1. Двічі поспіль виконайте `curl -i $GW/api/packages/4`.
+1. Двічі поспіль виконайте `curl -i -H "$AUTH" $GW/api/packages/4`.
 2. У Dashboard відкрийте Traces. Перший trace має span SQL-запиту, другий складається лише з
    Gateway і `registry-api`.
-3. Змініть ціну: `curl -i -X PUT $GW/api/packages/4/license-price -H "Content-Type: application/json" -d '{"licensePrice":12.50}'`.
+3. Змініть ціну: `curl -i -X PUT -H "$AUTH" $GW/api/packages/4/license-price -H "Content-Type: application/json" -d '{"licensePrice":12.50}'`.
 4. Повторіть `GET` – відповідь містить нову ціну, а в лозі є запис про інвалідацію з причиною
    `LicensePriceChanged`.
 
@@ -1138,11 +1265,11 @@ MongoDB сервісу телеметрії працює без набору р�
 ### Перевірка
 
 1. Змініть ціну:
-   `curl -i -X PUT $GW/api/packages/1/license-price -H "Content-Type: application/json" -d '{"licensePrice":59.00}'`.
+   `curl -i -X PUT -H "$AUTH" $GW/api/packages/1/license-price -H "Content-Type: application/json" -d '{"licensePrice":59.00}'`.
    За кілька секунд `SELECT * FROM cicd.Package` у базі `DevHub_Cicd` показує 59.00 для пакета 1, а
    артефакт 0.9.1 у `cicd.Artifact` зберігає 49.00.
 2. Перейменуйте пакет:
-   `curl -i -X PUT $GW/api/packages/2/name -H "Content-Type: application/json" -d '{"name":"devhub-identity"}'`.
+   `curl -i -X PUT -H "$AUTH" $GW/api/packages/2/name -H "Content-Type: application/json" -d '{"name":"devhub-identity"}'`.
    Обидва обговорення пакета 2, рядок `cicd.Package` і конвеєр «devhub-auth CI» отримують ключ
    `platform-team/devhub-identity`, а артефакти й звіт про збій зберігають стару назву.
 3. У Management UI опублікуйте ту саму подію ще раз з тим самим `message_id`. Лог споживача містить запис
@@ -1155,3 +1282,278 @@ MongoDB сервісу телеметрії працює без набору р�
    «3/3» з інтервалом 5 секунд, після них повідомлення йде в DLQ.
 
 ![Повідомлення з некоректним JSON у cicd.registry-sync.dlq із заголовком x-death](docs/screenshots/rabbitmq-dlq.png)
+
+## Автентифікація та авторизація
+
+Платформу захищають три постачальники токенів, і жоден не замінює інший. `Auth.Api` видає власні JWT
+користувачам DevHub. Duende IdentityServer обслуговує OAuth 2.0 для Postman, Swagger і агрегатора. Keycloak
+тримає ролі й дозволи, які описує проєкт Pulumi. Gateway перевіряє токен до проксування, а кожен сервіс
+перевіряє його ще раз сам і до постачальника на кожен запит не звертається. Обробник токена сервіс обирає
+за полем `iss` (`PlatformAuthentication.SchemeByIssuer` у `Platform.ServiceDefaults`), тому той самий
+`[RequirePermission]` приймає токен будь-якого з трьох.
+
+### Схема рішення
+
+```mermaid
+flowchart LR
+    Client[Клієнт / Postman] -->|login| Auth[auth-api]
+    Client -->|Authorization Code + PKCE| IS[identityserver :5005]
+    Client -->|Authorization Code + PKCE| KC[keycloak :8080]
+    Client -->|Bearer| Gateway[Platform.ApiGateway :5000]
+    Gateway --> Auth
+    Gateway --> Cicd[cicd-api]
+    Gateway --> Registry[registry-api]
+    Gateway --> Telemetry[telemetry-api]
+    Gateway --> Secrets[secrets-api]
+    Aggregator[aggregator] -->|Client Credentials| IS
+    Aggregator -.->|gRPC + токен| Cicd
+    Auth --> IdentityDb[(identity-sql – IdentityDb)]
+    IS --> IdentityServerDb[(identity-sql – IdentityServerDb)]
+    Pulumi[infra/keycloak – pulumi up] --> KC
+```
+
+Бази користувачів лежать в окремому контейнері SQL Server `devhub-identity-sql`, а не поруч із бізнес-даними.
+Сервіс `secrets-api` – сховище секретів конвеєрів (ключі розгортання, сертифікат підпису пакетів, токен
+публікації в реєстр). Значень він не повертає, лише ім’я, версію й відбиток, і доступ до нього має тільки
+адміністратор.
+
+### Секрети й запуск
+
+1. Збережіть секрети AppHost. Значення нижче – локальні навчальні:
+
+   ```bash
+   dotnet user-secrets set "Parameters:identity-sql-password" "Kostenuk#Identity26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:jwt-secret" "kostenuk-devhub-auth-signing-key-2026" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:auth-admin-password" "Kostenuk#Admin26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:postman-client-secret" "kostenuk-postman-client-26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:aggregator-client-secret" "kostenuk-aggregator-client-26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:identityserver-user-password" "Kostenuk#Idsrv26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:keycloak-admin-password" "Kostenuk#Keycloak26" --project Platform.AppHost
+   ```
+
+2. Запустіть `dotnet run --project Platform.AppHost`. Перший старт завантажує образ Keycloak, а `auth-api` і
+   `identityserver` застосовують свої міграції й створюють ролі, адміністратора `kostenuk.admin` і клієнтів.
+3. Встановіть Pulumi CLI (`winget install Pulumi.Pulumi`) і розгорніть realm:
+
+   ```bash
+   cd infra/keycloak
+   export PULUMI_CONFIG_PASSPHRASE="kostenuk-pulumi-stack-26"
+   pulumi login --local
+   pulumi stack init dev
+   pulumi config set --secret adminPassword "Kostenuk#Keycloak26"
+   pulumi config set --secret testUserPassword "Kostenuk#Temp26"
+   pulumi preview
+   pulumi up
+   pulumi stack output
+   pulumi stack output ClientSecrets --show-secrets
+   ```
+
+4. Імпортуйте в Postman колекцію `docs/postman/devhub-identity.postman_collection.json` і заповніть змінні
+   `postmanSecret`, `aggregatorSecret` і `keycloakPostmanSecret`.
+
+`pulumi preview` показує 82 ресурси: realm, клієнтів, ролі, політики, дозволи й чотирьох користувачів. Файл
+стека `Pulumi.dev.yaml` з зашифрованими паролями лишається на машині й до репозиторію не потрапляє.
+`pulumi destroy` прибирає realm після демонстрації.
+
+### Auth Service: ASP.NET Identity і JWT
+
+`Services/Auth/Auth.Api` має власну базу `IdentityDb` і власні `ApplicationUser` та `ApplicationDbContext`;
+міграція `InitialIdentity` створює таблиці `AspNet*` і `RefreshTokens`. Пароль – щонайменше 8 символів з
+цифрою, великою й малою літерою та спецсимволом. Після п’яти невдалих спроб обліковий запис блокується на
+15 хвилин, а вхід без підтвердженого email заборонено.
+
+Access-токен живе 15 хвилин і містить `sub`, `unique_name`, `email` і по одному claim `role` на роль, тож
+сервіси перевіряють ролі без звернення до бази. Refresh-токен живе 7 днів і приходить лише в cookie
+`devhub_refresh_token` з атрибутами `HttpOnly`, `Secure`, `SameSite=Strict` і `Path=/auth`. У базі зберігається
+тільки його SHA-256. Кожне оновлення відкликає старий токен і посилається з нього на новий. Якщо хтось подає
+вже відкликаний токен, сервіс відкликає всі активні токени користувача: так викрадений токен перестає
+працювати і в нападника, і в жертви.
+
+Токени підтвердження email і скидання пароля живуть дві години й одноразові. Після `ConfirmEmailAsync` сервіс
+оновлює security stamp, тому той самий токен удруге не спрацює; скидання і зміна пароля оновлюють stamp самі
+й відкликають усі refresh-токени. Лист у розробці замінює запис у лозі `auth-api` з токеном.
+
+| Endpoint | Доступ |
+| --- | --- |
+| `POST /auth/register`, `/login`, `/refresh-token`, `/verify-email`, `/resend-verification`, `/forgot-password`, `/reset-password` | анонімно |
+| `POST /auth/revoke-token`, `/logout`, `/change-password` | автентифікований |
+| `GET /users`, `DELETE /users/{id}`, `POST /users/{id}/roles`, `DELETE /users/{id}/roles/{role}` | `[Authorize(Roles = "Admin")]` |
+| `GET /users/{id}`, `PUT /users/{id}`, `GET /users/{id}/refresh-tokens` | власник (`sub` = `{id}`) або Admin |
+| `GET /users/{id}/roles` | автентифікований |
+
+Ролі `User` і `Admin` сервіс створює під час старту, а нового користувача реєструє з роллю `User`. Gateway
+маршрутизує `/auth/**` без перевірки токена, бо цей сервіс сам вирішує, які з його endpoint-ів анонімні, а
+`/users/**` і всі маршрути API пропускає лише з чинним токеном. У бізнес-логіці реєстр бере ім’я користувача
+з токена: `CreatedBy` і `UpdatedBy` пакета заповнює `HttpContextCurrentUser`.
+
+### Duende IdentityServer
+
+`Platform.IdentityServer` працює на порту 5005, бо 5000 зайнятий Gateway. Він має окрему базу
+`IdentityServerDb`, власних користувачів ASP.NET Identity і сховища конфігурації та операційних даних на EF:
+`AddIdentityServer().AddAspNetIdentity().AddConfigurationStore().AddOperationalStore()`. Міграції трьох контекстів
+лежать у `Migrations/PersistedGrantDb`, `Migrations/ConfigurationDb` і `Migrations/ApplicationDb`. Сторінки входу,
+виходу й згоди взято з Quickstart UI шаблону Duende без змін, разом із його заголовками ліцензії.
+
+| Ресурс | Scopes |
+| --- | --- |
+| `cicd_api` | `cicd.read`, `cicd.write` |
+| `registry_api` | `registry.read`, `registry.write` |
+| `telemetry_api` | `telemetry.read` |
+| `secrets_api` | `secrets.read`, `secrets.write` |
+
+| Клієнт | Потік | Особливості |
+| --- | --- | --- |
+| `postman` | Authorization Code | секрет, PKCE, refresh-токени, callback `https://oauth.pstmn.io/v1/callback` |
+| `aggregator` | Client Credentials | секрет, лише `cicd.read`, `registry.read`, `telemetry.read` |
+| `swagger` | Authorization Code | публічний клієнт без секрету, PKCE обов’язковий, Swagger UI сервісів CI/CD і реєстру |
+
+Сервіси приймають токени IdentityServer через `AddJwtBearer("identityserver")` з `Authority` і власним
+`Audience`. Агрегатор бере токен Client Credentials, тримає його до хвилини перед закінченням строку й додає
+до кожного gRPC-виклику, а gRPC-сервіси пропускають лише токен зі scope читання
+(`[Authorize(Policy = "cicd.read")]`). У такому токені немає `sub`: він описує сервіс, а не людину.
+
+### Keycloak і Pulumi
+
+AppHost запускає Keycloak через `AddKeycloak("keycloak", 8080).WithDataVolume()`, а сервіси отримують на нього
+посилання й налаштовують `AddKeycloakJwtBearer` на realm `DevHub`. Realm, клієнтів, ролі й користувачів створює
+проєкт `infra/keycloak`:
+
+| Файл | Що описує |
+| --- | --- |
+| `Pulumi.yaml`, `Program.cs` | provider з обліковим записом адміністратора, realm (реєстрація, скидання пароля, «запам’ятати мене», тема), outputs |
+| `PermissionMatrix.cs` | ролі `admin`, `manager`, `user`, `guest` і дозволи кожної ролі на кожному resource server |
+| `ResourceServer.cs` | resource server `cicd-api`, `registry-api` або `secrets-api`: scopes, ресурс, рольові політики, scope-дозволи, клієнтські ролі |
+| `KeycloakClientFactory.cs`, `ClientScopeExtensions.cs` | фабрика клієнтів `postman`, `swagger`, `aggregator`; extension-методи для default scopes, audience-мапперів і маппера дозволів |
+| `TestUsers.cs` | користувачі `devhub-admin`, `devhub-manager`, `devhub-user`, `devhub-guest` з підтвердженим email, роллю й тимчасовим паролем |
+
+| Resource server | Scopes |
+| --- | --- |
+| `cicd-api` | `cicd:read`, `cicd:create`, `cicd:update`, `cicd:delete`, `cicd:approve` |
+| `registry-api` | `registry:read`, `registry:create`, `registry:update`, `registry:delete`, `registry:publish` |
+| `secrets-api` | `secrets:read`, `secrets:rotate`, `secrets:revoke` |
+
+| Роль | `cicd-api` | `registry-api` | `secrets-api` |
+| --- | --- | --- | --- |
+| `admin` | усі дозволи | усі дозволи | усі дозволи |
+| `manager` | read, update, approve | read, update, publish | – |
+| `user` | read, create | read | – |
+| `guest` | – | read | – |
+
+`approve` у CI/CD – дозвіл запустити збірку з черги на агенті (`POST /api/build-runs/{id}/start`), `publish` у
+реєстрі – показати пакет у реєстрі чи сховати його (`relist`, `unlist`). Розробник ставить збірку в чергу,
+менеджер релізів її погоджує, а видаляти історію може лише адміністратор. До секретів конвеєрів доступ має
+тільки `admin`: це найчутливіший ресурс системи.
+
+Дозволи потрапляють у токен двома шляхами. Кожен дозвіл – клієнтська роль resource server, ролі realm складено
+з них як composite roles, а маппер «client roles as permissions» записує їх у claim `permissions` кожного
+access-токена. Окрім того, resource servers мають Authorization Services з рольовими політиками й
+scope-дозволами за тією самою матрицею, тому запит `grant_type=urn:ietf:params:oauth:grant-type:uma-ticket`
+повертає RPT із `authorization.permissions` для одного resource server. Обидва варіанти читає
+`KeycloakPermissionHandler`.
+
+### Перевірка дозволів у сервісах
+
+Кожен endpoint сервісів CI/CD, реєстру й секретів позначено `[RequirePermission("…")]`. Атрибут посилається на
+політику з тим самим іменем, а політика містить `PermissionRequirement`. Для цієї вимоги зареєстровано три
+обробники, і досить згоди одного з них: `KeycloakPermissionHandler` читає `permissions` та
+`authorization.permissions`, `ScopePermissionHandler` перетворює scope IdentityServer на дозволи (`cicd.read` дає
+`cicd:read`, `cicd.write` – решту), `RolePermissionHandler` робить те саме з ролями `Auth.Api` (`Admin` має все,
+`User` – роль `user` з матриці). Код лежить у `<Сервіс>.Api/Authorization` кожного сервісу: дозволи визначає й
+перевіряє сам сервіс, Keycloak на кожен запит не опитується. Сервіс телеметрії в матрицю не входить і вимагає
+лише чинного токена.
+
+### Матриця дозволів
+
+Нижче – фактичні коди відповіді через Gateway з токенами Keycloak чотирьох користувачів. Запити на зміну
+адресовано записам, яких немає, тож 400 і 404 означають, що запит пройшов авторизацію й зупинився на
+валідації чи пошуку. 403 – відмова в дозволі.
+
+| Дозвіл | Endpoint | admin | manager | user | guest |
+| --- | --- | --- | --- | --- | --- |
+| `cicd:read` | `GET /api/pipelines` | 200 | 200 | 200 | 403 |
+| `cicd:read` | `GET /api/build-runs/1` | 200 | 200 | 200 | 403 |
+| `cicd:create` | `POST /api/pipelines` | 400 | 403 | 400 | 403 |
+| `cicd:create` | `POST /api/build-runs` | 400 | 403 | 400 | 403 |
+| `cicd:update` | `POST /api/build-runs/{id}/transition` | 400 | 400 | 403 | 403 |
+| `cicd:update` | `POST /api/build-runs/{id}/complete` | 400 | 400 | 403 | 403 |
+| `cicd:approve` | `POST /api/build-runs/{id}/start` | 400 | 400 | 403 | 403 |
+| `cicd:delete` | `DELETE /api/build-runs/{id}` | 404 | 403 | 403 | 403 |
+| `cicd:delete` | `DELETE /api/pipelines/{id}` | 404 | 403 | 403 | 403 |
+| `registry:read` | `GET /api/packages` | 200 | 200 | 200 | 200 |
+| `registry:read` | `GET /api/tags` | 200 | 200 | 200 | 200 |
+| `registry:create` | `POST /api/packages` | 400 | 403 | 403 | 403 |
+| `registry:update` | `PUT /api/packages/{id}/license-price` | 404 | 404 | 403 | 403 |
+| `registry:update` | `PUT /api/packages/{id}/name` | 404 | 404 | 403 | 403 |
+| `registry:publish` | `POST /api/packages/{id}/unlist` | 404 | 404 | 403 | 403 |
+| `registry:publish` | `POST /api/packages/{id}/relist` | 404 | 404 | 403 | 403 |
+| `registry:delete` | `DELETE /api/packages/{id}` | 404 | 403 | 403 | 403 |
+| `secrets:read` | `GET /api/secrets` | 200 | 403 | 403 | 403 |
+| `secrets:rotate` | `POST /api/secrets/rotate` | 404 | 403 | 403 | 403 |
+| `secrets:revoke` | `POST /api/secrets/revoke` | 404 | 403 | 403 | 403 |
+
+На наявному пакеті менеджер отримує 204 на `PUT /api/packages/1/license-price` і 403 на
+`DELETE /api/packages/1`, а `UpdatedBy` пакета стає `devhub-manager`.
+
+### Декодовані JWT
+
+Токен `Auth.Api` адміністратора:
+
+```json
+{
+  "sub": "6a77c546-dbec-454c-b92d-6da01cb406d9",
+  "unique_name": "kostenuk.admin",
+  "email": "kostenuk.admin@devhub.local",
+  "jti": "a0249746-56c3-4f6d-80ca-945fcb939285",
+  "role": ["User", "Admin"],
+  "exp": 1793034550,
+  "iss": "devhub-auth",
+  "aud": "devhub-platform"
+}
+```
+
+Токен Client Credentials агрегатора від IdentityServer, без `sub`:
+
+```json
+{
+  "iss": "https://localhost:5005",
+  "aud": ["cicd_api", "registry_api", "telemetry_api"],
+  "scope": ["cicd.read", "registry.read", "telemetry.read"],
+  "client_id": "aggregator",
+  "jti": "24EBF0A4CED69D7B29DFBCA8059D2863",
+  "exp": 1793037250
+}
+```
+
+Токен Keycloak користувача `devhub-manager` і RPT того ж користувача для `cicd-api`:
+
+```json
+{
+  "iss": "http://localhost:8080/realms/DevHub",
+  "aud": ["secrets-api", "cicd-api", "registry-api", "telemetry-api", "account"],
+  "preferred_username": "devhub-manager",
+  "realm_access": { "roles": ["manager", "default-roles-devhub", "offline_access", "uma_authorization"] },
+  "permissions": ["cicd:update", "cicd:approve", "cicd:read", "manage-account", "manage-account-links", "view-profile", "registry:read", "registry:publish", "registry:update"],
+  "scope": "openid devhub-apis profile email"
+}
+```
+
+```json
+{
+  "aud": "cicd-api",
+  "preferred_username": "devhub-manager",
+  "authorization": {
+    "permissions": [
+      { "rsname": "cicd-api", "rsid": "7063dd76-f579-4c73-865a-c2bda6f5cf32", "scopes": ["cicd:update", "cicd:approve", "cicd:read"] }
+    ]
+  }
+}
+```
+
+`manage-account` і `view-profile` – вбудовані ролі облікового запису Keycloak; жоден endpoint їх не вимагає.
+
+### Колекція Postman
+
+`docs/postman/devhub-identity.postman_collection.json` має чотири папки: реєстрація, сесія, пароль і
+користувачі `Auth.Api`; Authorization Code з PKCE і Client Credentials в IdentityServer; RPT і всі endpoint-и
+матриці з токеном Keycloak. Для матриці в авторизації папки Keycloak натисніть «Get New Access Token» і
+увійдіть потрібним користувачем. Під час першого входу Keycloak попросить замінити тимчасовий пароль.
