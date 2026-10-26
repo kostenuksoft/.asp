@@ -1,4 +1,6 @@
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
+using Registry.Api.Authorization;
 using Registry.Bll.Dtos;
 using Registry.Bll.Services.Interfaces;
 using Registry.Domain.Exceptions;
@@ -6,6 +8,7 @@ using Registry.Grpc;
 
 namespace Registry.Api.Grpc;
 
+[Authorize(Policy = Permissions.ReadScope)]
 public sealed class RegistryGrpcService(IPackageService packages) : RegistryService.RegistryServiceBase
 {
     private const int MaxBatchSize = 100;

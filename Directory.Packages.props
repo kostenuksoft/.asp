@@ -89,6 +89,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.20" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
+    <PackageVersion Include="Duende.IdentityServer.AspNetIdentity" Version="7.4.14" />
+    <PackageVersion Include="Duende.IdentityServer.EntityFramework" Version="7.4.14" />
+    <PackageVersion Include="Aspire.Hosting.Keycloak" Version="9.5.2-preview.1.25522.3" />
+    <PackageVersion Include="Aspire.Keycloak.Authentication" Version="9.5.2-preview.1.25522.3" />
+    <PackageVersion Include="Pulumi" Version="3.116.1" />
+    <PackageVersion Include="Pulumi.Keycloak" Version="6.14.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

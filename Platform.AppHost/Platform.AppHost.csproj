@@ -13,14 +13,18 @@
     <PackageReference Include="Aspire.Hosting.MongoDB" />
     <PackageReference Include="Aspire.Hosting.Redis" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.Keycloak" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Services\Auth\Auth.Api\Auth.Api.csproj" />
     <ProjectReference Include="..\Services\Cicd\Cicd.Api\Cicd.Api.csproj" />
     <ProjectReference Include="..\Services\Registry\Registry.Api\Registry.Api.csproj" />
     <ProjectReference Include="..\Services\Telemetry\Telemetry.WebApi\Telemetry.WebApi.csproj" />
+    <ProjectReference Include="..\Services\Secrets\Secrets.Api\Secrets.Api.csproj" />
     <ProjectReference Include="..\Platform.Aggregator\Platform.Aggregator.csproj" />
     <ProjectReference Include="..\Platform.ApiGateway\Platform.ApiGateway.csproj" />
+    <ProjectReference Include="..\Platform.IdentityServer\Platform.IdentityServer.csproj" />
   </ItemGroup>
 
 </Project>

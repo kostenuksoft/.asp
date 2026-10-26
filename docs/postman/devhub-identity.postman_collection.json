@@ -1,0 +1,411 @@
+{
+  "info": {
+    "name": "DevHub – автентифікація й авторизація",
+    "description": "Три підходи: Auth.Api (ASP.NET Identity + JWT), Duende IdentityServer (Authorization Code з PKCE, Client Credentials), Keycloak (permissions у токені й RPT). Усі запити до API йдуть через Gateway. Секрети клієнтів не зберігаються в колекції: postmanSecret – з user secrets AppHost (Parameters:postman-client-secret), keycloakPostmanSecret – з pulumi stack output ClientSecrets --show-secrets.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "gateway", "value": "http://localhost:5000" },
+    { "key": "identityServer", "value": "https://localhost:5005" },
+    { "key": "keycloakRealm", "value": "http://localhost:8080/realms/DevHub" },
+    { "key": "userName", "value": "kostenuk" },
+    { "key": "email", "value": "kostenuk@devhub.local" },
+    { "key": "password", "value": "Kostenuk#Dev26" },
+    { "key": "newPassword", "value": "Kostenuk#Change26" },
+    { "key": "adminUserName", "value": "kostenuk.admin" },
+    { "key": "adminPassword", "value": "Kostenuk#Admin26" },
+    { "key": "postmanSecret", "value": "" },
+    { "key": "aggregatorSecret", "value": "" },
+    { "key": "keycloakPostmanSecret", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "mailToken", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "clientCredentialsToken", "value": "" },
+    { "key": "rpt", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth.Api – ASP.NET Identity + JWT",
+      "item": [
+        {
+          "name": "Реєстрація й підтвердження email",
+          "item": [
+            {
+              "name": "POST /auth/register",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                "pm.collectionVariables.set('userId', pm.response.json().id);"
+              ] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/register",
+                "body": { "mode": "raw", "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"displayName\": \"Kostenuk\"\n}" }
+              }
+            },
+            {
+              "name": "POST /auth/login – до підтвердження (403)",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('403 Email not confirmed', () => pm.response.to.have.status(403));"
+              ] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}" }
+              }
+            },
+            {
+              "name": "POST /auth/verify-email",
+              "description": "mailToken – поле Token з логу auth-api («Mail to … confirm the address»).",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+              ] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/verify-email",
+                "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"token\": \"{{mailToken}}\"\n}" }
+              }
+            },
+            {
+              "name": "POST /auth/resend-verification",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/resend-verification",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Сесія",
+          "item": [
+            {
+              "name": "POST /auth/login",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                "pm.test('refresh token у HttpOnly cookie', () => pm.expect(pm.cookies.has('devhub_refresh_token')).to.be.true);",
+                "pm.collectionVariables.set('accessToken', pm.response.json().accessToken);"
+              ] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}" }
+              }
+            },
+            {
+              "name": "POST /auth/refresh-token",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('200 OK, новий access token', () => pm.response.to.have.status(200));",
+                "pm.collectionVariables.set('accessToken', pm.response.json().accessToken);"
+              ] } }],
+              "request": { "method": "POST", "url": "{{gateway}}/auth/refresh-token" }
+            },
+            {
+              "name": "GET /api/packages без токена (401)",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+              ] } }],
+              "request": { "method": "GET", "url": "{{gateway}}/api/packages" }
+            },
+            {
+              "name": "GET /api/packages з токеном",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "GET",
+                "url": "{{gateway}}/api/packages"
+              }
+            },
+            {
+              "name": "POST /auth/revoke-token",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/revoke-token",
+                "body": { "mode": "raw", "raw": "{}" }
+              }
+            },
+            {
+              "name": "POST /auth/logout",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+              ] } }],
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{gateway}}/auth/logout"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Пароль",
+          "item": [
+            {
+              "name": "POST /auth/change-password",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/change-password",
+                "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}" }
+              }
+            },
+            {
+              "name": "POST /auth/forgot-password",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/forgot-password",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" }
+              }
+            },
+            {
+              "name": "POST /auth/reset-password",
+              "description": "mailToken – поле Token з логу auth-api («Mail to … reset the password»). Після скидання всі refresh-токени відкликано.",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/reset-password",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"token\": \"{{mailToken}}\",\n  \"newPassword\": \"{{password}}\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Користувачі й ролі",
+          "item": [
+            {
+              "name": "POST /auth/login – Admin",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.collectionVariables.set('adminAccessToken', pm.response.json().accessToken);"
+              ] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/auth/login",
+                "body": { "mode": "raw", "raw": "{\n  \"userName\": \"{{adminUserName}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
+              }
+            },
+            {
+              "name": "GET /users – Admin",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+                "method": "GET",
+                "url": "{{gateway}}/users"
+              }
+            },
+            {
+              "name": "GET /users – User (403)",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+              ] } }],
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "GET",
+                "url": "{{gateway}}/users"
+              }
+            },
+            {
+              "name": "GET /users/{id} – власник",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "GET",
+                "url": "{{gateway}}/users/{{userId}}"
+              }
+            },
+            {
+              "name": "PUT /users/{id} – власник",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/users/{{userId}}",
+                "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Kostenuk, platform team\"\n}" }
+              }
+            },
+            {
+              "name": "GET /users/{id}/refresh-tokens",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "GET",
+                "url": "{{gateway}}/users/{{userId}}/refresh-tokens"
+              }
+            },
+            {
+              "name": "GET /users/{id}/roles",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+                "method": "GET",
+                "url": "{{gateway}}/users/{{userId}}/roles"
+              }
+            },
+            {
+              "name": "POST /users/{id}/roles – Admin",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{gateway}}/users/{{userId}}/roles",
+                "body": { "mode": "raw", "raw": "{\n  \"role\": \"Admin\"\n}" }
+              }
+            },
+            {
+              "name": "DELETE /users/{id}/roles/{role} – Admin",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+                "method": "DELETE",
+                "url": "{{gateway}}/users/{{userId}}/roles/Admin"
+              }
+            },
+            {
+              "name": "DELETE /users/{id} – Admin",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+                "method": "DELETE",
+                "url": "{{gateway}}/users/{{userId}}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. IdentityServer – OAuth 2.0",
+      "item": [
+        {
+          "name": "Authorization Code (postman, PKCE) → GET /api/packages",
+          "description": "Get New Access Token: вхід на сторінці IdentityServer (користувач kostenuk), код обмінюється на токен.",
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                { "key": "grant_type", "value": "authorization_code_with_pkce", "type": "string" },
+                { "key": "authUrl", "value": "{{identityServer}}/connect/authorize", "type": "string" },
+                { "key": "accessTokenUrl", "value": "{{identityServer}}/connect/token", "type": "string" },
+                { "key": "clientId", "value": "postman", "type": "string" },
+                { "key": "clientSecret", "value": "{{postmanSecret}}", "type": "string" },
+                { "key": "scope", "value": "openid profile cicd.read registry.read registry.write", "type": "string" },
+                { "key": "redirect_uri", "value": "https://oauth.pstmn.io/v1/callback", "type": "string" },
+                { "key": "challengeAlgorithm", "value": "S256", "type": "string" },
+                { "key": "useBrowser", "value": false, "type": "boolean" },
+                { "key": "tokenName", "value": "identityserver-postman", "type": "string" },
+                { "key": "addTokenTo", "value": "header", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "url": "{{gateway}}/api/packages"
+          }
+        },
+        {
+          "name": "POST /connect/token – Client Credentials (aggregator)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const token = pm.response.json().access_token;",
+            "pm.collectionVariables.set('clientCredentialsToken', token);",
+            "const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+            "pm.test('у токені Client Credentials немає sub', () => pm.expect(payload).to.not.have.property('sub'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{identityServer}}/connect/token",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "client_credentials" },
+                { "key": "client_id", "value": "aggregator" },
+                { "key": "client_secret", "value": "{{aggregatorSecret}}" },
+                { "key": "scope", "value": "cicd.read registry.read telemetry.read" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/pipelines – токен Client Credentials",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientCredentialsToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{gateway}}/api/pipelines"
+          }
+        },
+        {
+          "name": "DELETE /api/packages/4 – токен Client Credentials (403)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('403: scope registry.read не дає registry:delete', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientCredentialsToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": "{{gateway}}/api/packages/4"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Keycloak – матриця дозволів",
+      "description": "Авторизація папки: Get New Access Token, вхід користувачем devhub-admin, devhub-manager, devhub-user або devhub-guest. Токен містить claim permissions; запит RPT повертає authorization.permissions для одного resource server.",
+      "auth": {
+        "type": "oauth2",
+        "oauth2": [
+          { "key": "grant_type", "value": "authorization_code_with_pkce", "type": "string" },
+          { "key": "authUrl", "value": "{{keycloakRealm}}/protocol/openid-connect/auth", "type": "string" },
+          { "key": "accessTokenUrl", "value": "{{keycloakRealm}}/protocol/openid-connect/token", "type": "string" },
+          { "key": "clientId", "value": "postman", "type": "string" },
+          { "key": "clientSecret", "value": "{{keycloakPostmanSecret}}", "type": "string" },
+          { "key": "scope", "value": "openid", "type": "string" },
+          { "key": "redirect_uri", "value": "https://oauth.pstmn.io/v1/callback", "type": "string" },
+          { "key": "challengeAlgorithm", "value": "S256", "type": "string" },
+          { "key": "useBrowser", "value": false, "type": "boolean" },
+          { "key": "tokenName", "value": "keycloak-postman", "type": "string" },
+          { "key": "addTokenTo", "value": "header", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "POST token – RPT для cicd-api (uma-ticket)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) { pm.collectionVariables.set('rpt', pm.response.json().access_token); }"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakRealm}}/protocol/openid-connect/token",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "urn:ietf:params:oauth:grant-type:uma-ticket" },
+                { "key": "audience", "value": "cicd-api" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/pipelines – RPT",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{rpt}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{gateway}}/api/pipelines"
+          }
+        },
+        { "name": "GET /api/pipelines (cicd:read)", "request": { "method": "GET", "url": "{{gateway}}/api/pipelines" } },
+        { "name": "GET /api/build-runs/1 (cicd:read)", "request": { "method": "GET", "url": "{{gateway}}/api/build-runs/1" } },
+        { "name": "POST /api/build-runs (cicd:create)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/build-runs", "body": { "mode": "raw", "raw": "{}" } } },
+        { "name": "POST /api/build-runs/1/transition (cicd:update)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/build-runs/1/transition", "body": { "mode": "raw", "raw": "{\n  \"targetStatus\": \"Cancelled\"\n}" } } },
+        { "name": "POST /api/build-runs/1/start (cicd:approve)", "request": { "method": "POST", "url": "{{gateway}}/api/build-runs/1/start" } },
+        { "name": "DELETE /api/build-runs/1 (cicd:delete)", "request": { "method": "DELETE", "url": "{{gateway}}/api/build-runs/1" } },
+        { "name": "GET /api/packages (registry:read)", "request": { "method": "GET", "url": "{{gateway}}/api/packages" } },
+        { "name": "POST /api/packages (registry:create)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/packages", "body": { "mode": "raw", "raw": "{}" } } },
+        { "name": "PUT /api/packages/1/license-price (registry:update)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/packages/1/license-price", "body": { "mode": "raw", "raw": "{\n  \"licensePrice\": 65.00\n}" } } },
+        { "name": "POST /api/packages/1/relist (registry:publish)", "request": { "method": "POST", "url": "{{gateway}}/api/packages/1/relist" } },
+        { "name": "DELETE /api/packages/12 (registry:delete)", "request": { "method": "DELETE", "url": "{{gateway}}/api/packages/12" } },
+        { "name": "GET /api/secrets (secrets:read)", "request": { "method": "GET", "url": "{{gateway}}/api/secrets" } },
+        { "name": "POST /api/secrets/rotate (secrets:rotate)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/secrets/rotate", "body": { "mode": "raw", "raw": "{\n  \"name\": \"deploy-ssh-key\",\n  \"newValue\": \"kostenuk-deploy-key-rotated-26\"\n}" } } },
+        { "name": "POST /api/secrets/revoke (secrets:revoke)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/secrets/revoke", "body": { "mode": "raw", "raw": "{\n  \"name\": \"deploy-ssh-key\"\n}" } } }
+      ]
+    }
+  ]
+}

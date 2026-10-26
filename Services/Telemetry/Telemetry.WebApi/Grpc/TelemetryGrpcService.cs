@@ -3,6 +3,7 @@ using FluentValidation;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Telemetry.Application.Common.Models;
 using Telemetry.Application.CrashReports.Queries.GetCrashReportsList;
 using Telemetry.Application.Discussions.Queries.GetDiscussionsList;
@@ -10,8 +11,11 @@ using Telemetry.Grpc;
 
 namespace Telemetry.WebApi.Grpc;
 
+[Authorize(Policy = ReadScope)]
 public sealed class TelemetryGrpcService(ISender sender) : TelemetryService.TelemetryServiceBase
 {
+    public const string ReadScope = "telemetry.read";
+
     public override async Task<DiscussionsReply> GetDiscussions(
         PackageItemsRequest request,
         ServerCallContext context

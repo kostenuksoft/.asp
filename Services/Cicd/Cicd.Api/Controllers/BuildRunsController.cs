@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Cicd.Api.Authorization;
 using Cicd.Api.Metrics;
 using Cicd.Bll.Dtos;
 using Cicd.Bll.Services.Interfaces;
@@ -15,6 +16,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     private const string CompleteOperation = "complete";
 
     [HttpGet("{id:long}")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BuildRunDto>> GetById(
@@ -23,6 +25,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     ) => Ok(await buildRuns.GetByIdAsync(id, cancellationToken));
 
     [HttpGet("{id:long}/timeline")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RunTimelineDto>> GetTimeline(
@@ -31,6 +34,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     ) => Ok(await buildRuns.GetTimelineAsync(id, cancellationToken));
 
     [HttpPost]
+    [RequirePermission(Permissions.Create)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -57,6 +61,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     }
 
     [HttpPost("{id:long}/start")]
+    [RequirePermission(Permissions.Approve)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -68,6 +73,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     ) => Ok(await buildRuns.StartAsync(id, input, cancellationToken));
 
     [HttpPost("{id:long}/transition")]
+    [RequirePermission(Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,6 +89,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     }
 
     [HttpPost("{id:long}/complete")]
+    [RequirePermission(Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -108,6 +115,7 @@ public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics 
     }
 
     [HttpDelete("{id:long}")]
+    [RequirePermission(Permissions.Delete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Registry.Api.Authorization;
 using Registry.Bll.Dtos;
 using Registry.Bll.Services.Interfaces;
 
@@ -10,12 +11,14 @@ namespace Registry.Api.Controllers;
 public sealed class TagsController(ITagService tags) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<TagDto>>> GetAll(
         CancellationToken cancellationToken
     ) => Ok(await tags.GetAllAsync(cancellationToken));
 
     [HttpGet("{id:long}")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TagWithPackagesDto>> GetWithPackages(
@@ -24,6 +27,7 @@ public sealed class TagsController(ITagService tags) : ControllerBase
     ) => Ok(await tags.GetWithPackagesAsync(id, cancellationToken));
 
     [HttpGet("{name}/recent-packages")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

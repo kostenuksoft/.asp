@@ -7,6 +7,39 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
+    .AddPolicyScheme(
+        PlatformAuthentication.Scheme,
+        "Bearer token of any trusted issuer",
+        options => options.ForwardDefaultSelector = PlatformAuthentication.SchemeByIssuer(builder.Configuration)
+    )
+    .AddJwtBearer(PlatformAuthentication.AuthServiceScheme, options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    })
+    .AddJwtBearer(PlatformAuthentication.IdentityServerScheme, options =>
+    {
+        options.Authority = builder.Configuration["IdentityServer:Authority"];
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters.ValidAudiences = ["cicd_api", "registry_api", "telemetry_api", "secrets_api"];
+    })
+    .AddKeycloakJwtBearer(
+        serviceName: "keycloak",
+        realm: "DevHub",
+        authenticationScheme: PlatformAuthentication.KeycloakScheme,
+        options =>
+        {
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters.ValidAudiences = ["cicd-api", "registry-api", "telemetry-api", "secrets-api"];
+            if (builder.Environment.IsDevelopment())
+            {
+                options.RequireHttpsMetadata = false;
+            }
+        }
+    );
+builder.Services.AddAuthorization();
+
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
     .AddServiceDiscoveryDestinationResolver();
@@ -46,6 +79,9 @@ app.Use(async (context, next) =>
         stopwatch.ElapsedMilliseconds
     );
 });
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapReverseProxy();
 app.MapDefaultEndpoints();

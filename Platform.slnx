@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/Services/" />
+  <Folder Name="/Services/Auth/">
+    <Project Path="Services/Auth/Auth.Api/Auth.Api.csproj" />
+  </Folder>
   <Folder Name="/Services/Cicd/">
     <Project Path="Services/Cicd/Cicd.Api/Cicd.Api.csproj" />
     <Project Path="Services/Cicd/Cicd.Bll/Cicd.Bll.csproj" />
@@ -13,6 +16,9 @@
     <Project Path="Services/Registry/Registry.Dal/Registry.Dal.csproj" />
     <Project Path="Services/Registry/Registry.Domain/Registry.Domain.csproj" />
   </Folder>
+  <Folder Name="/Services/Secrets/">
+    <Project Path="Services/Secrets/Secrets.Api/Secrets.Api.csproj" />
+  </Folder>
   <Folder Name="/Services/Telemetry/">
     <Project Path="Services/Telemetry/Telemetry.Application/Telemetry.Application.csproj" />
     <Project Path="Services/Telemetry/Telemetry.Domain/Telemetry.Domain.csproj" />
@@ -20,9 +26,13 @@
     <Project Path="Services/Telemetry/Telemetry.Tests/Telemetry.Tests.csproj" />
     <Project Path="Services/Telemetry/Telemetry.WebApi/Telemetry.WebApi.csproj" />
   </Folder>
+  <Folder Name="/infra/">
+    <Project Path="infra/keycloak/KeycloakRealm.csproj" />
+  </Folder>
   <Project Path="Platform.Aggregator/Platform.Aggregator.csproj" />
   <Project Path="Platform.ApiGateway/Platform.ApiGateway.csproj" />
   <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
   <Project Path="Platform.EventBus/Platform.EventBus.csproj" />
+  <Project Path="Platform.IdentityServer/Platform.IdentityServer.csproj" />
   <Project Path="Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
 </Solution>

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
+using Registry.Api.Authorization;
 using Registry.Api.Metrics;
 using Registry.Bll.Dtos;
 using Registry.Bll.Services.Interfaces;
@@ -25,6 +26,7 @@ public sealed class PackagesController(
     private const string ChangeLicensePriceOperation = "change_license_price";
 
     [HttpGet]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<PackageDto>>> GetList(
@@ -42,6 +44,7 @@ public sealed class PackagesController(
     }
 
     [HttpGet("top")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<PackageDto>>> GetTopDownloaded(
         [FromQuery] int take = 5,
@@ -49,6 +52,7 @@ public sealed class PackagesController(
     ) => Ok(await packages.GetTopDownloadedAsync(take, cancellationToken));
 
     [HttpGet("{id:long}")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PackageDetailsDto>> GetById(
@@ -57,6 +61,7 @@ public sealed class PackagesController(
     ) => Ok(await packages.GetByIdAsync(id, cancellationToken));
 
     [HttpPost]
+    [RequirePermission(Permissions.Create)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -87,6 +92,7 @@ public sealed class PackagesController(
     }
 
     [HttpPut("{id:long}/name")]
+    [RequirePermission(Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -108,6 +114,7 @@ public sealed class PackagesController(
     }
 
     [HttpPut("{id:long}/license-price")]
+    [RequirePermission(Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -140,6 +147,7 @@ public sealed class PackagesController(
     }
 
     [HttpPost("{id:long}/downloads")]
+    [RequirePermission(Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -155,6 +163,7 @@ public sealed class PackagesController(
     }
 
     [HttpPost("{id:long}/unlist")]
+    [RequirePermission(Permissions.Publish)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -168,6 +177,7 @@ public sealed class PackagesController(
     }
 
     [HttpPost("{id:long}/relist")]
+    [RequirePermission(Permissions.Publish)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -181,6 +191,7 @@ public sealed class PackagesController(
     }
 
     [HttpPost("{id:long}/tags")]
+    [RequirePermission(Permissions.Update)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -196,6 +207,7 @@ public sealed class PackagesController(
     }
 
     [HttpDelete("{id:long}")]
+    [RequirePermission(Permissions.Delete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(

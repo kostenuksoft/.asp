@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Telemetry.Application.Common.Models;
@@ -16,6 +17,7 @@ using Telemetry.WebApi.Metrics;
 
 namespace Telemetry.WebApi.Controllers;
 
+[Authorize]
 [Route("api/discussions")]
 public sealed class DiscussionsController(ISender sender, TelemetryMetrics metrics) : ApiController(sender)
 {

@@ -16,6 +16,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Aspire.Keycloak.Authentication" />
     <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Grpc.AspNetCore.HealthChecks" />
