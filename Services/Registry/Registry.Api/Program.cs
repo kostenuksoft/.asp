@@ -117,7 +117,21 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
         options.Authority = builder.Configuration["IdentityServer:Authority"];
         options.Audience = "registry_api";
         options.MapInboundClaims = false;
-    });
+    })
+    .AddKeycloakJwtBearer(
+        serviceName: "keycloak",
+        realm: "DevHub",
+        authenticationScheme: PlatformAuthentication.KeycloakScheme,
+        options =>
+        {
+            options.Audience = "registry-api";
+            options.MapInboundClaims = false;
+            if (builder.Environment.IsDevelopment())
+            {
+                options.RequireHttpsMetadata = false;
+            }
+        }
+    );
 builder.Services.AddAuthorization(options =>
 {
     foreach (string permission in Permissions.All)

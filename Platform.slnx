@@ -16,6 +16,9 @@
     <Project Path="Services/Registry/Registry.Dal/Registry.Dal.csproj" />
     <Project Path="Services/Registry/Registry.Domain/Registry.Domain.csproj" />
   </Folder>
+  <Folder Name="/Services/Secrets/">
+    <Project Path="Services/Secrets/Secrets.Api/Secrets.Api.csproj" />
+  </Folder>
   <Folder Name="/Services/Telemetry/">
     <Project Path="Services/Telemetry/Telemetry.Application/Telemetry.Application.csproj" />
     <Project Path="Services/Telemetry/Telemetry.Domain/Telemetry.Domain.csproj" />

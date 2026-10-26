@@ -94,6 +94,8 @@
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
     <PackageVersion Include="Duende.IdentityServer.AspNetIdentity" Version="7.4.14" />
     <PackageVersion Include="Duende.IdentityServer.EntityFramework" Version="7.4.14" />
+    <PackageVersion Include="Aspire.Hosting.Keycloak" Version="9.5.2-preview.1.25522.3" />
+    <PackageVersion Include="Aspire.Keycloak.Authentication" Version="9.5.2-preview.1.25522.3" />
   </ItemGroup>
 
   <ItemGroup>

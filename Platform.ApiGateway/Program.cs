@@ -23,7 +23,21 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
         options.Authority = builder.Configuration["IdentityServer:Authority"];
         options.MapInboundClaims = false;
         options.TokenValidationParameters.ValidAudiences = ["cicd_api", "registry_api", "telemetry_api", "secrets_api"];
-    });
+    })
+    .AddKeycloakJwtBearer(
+        serviceName: "keycloak",
+        realm: "DevHub",
+        authenticationScheme: PlatformAuthentication.KeycloakScheme,
+        options =>
+        {
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters.ValidAudiences = ["cicd-api", "registry-api", "telemetry-api", "secrets-api"];
+            if (builder.Environment.IsDevelopment())
+            {
+                options.RequireHttpsMetadata = false;
+            }
+        }
+    );
 builder.Services.AddAuthorization();
 
 builder.Services.AddReverseProxy()

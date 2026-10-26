@@ -56,7 +56,21 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
         options.Authority = builder.Configuration["IdentityServer:Authority"];
         options.Audience = "telemetry_api";
         options.MapInboundClaims = false;
-    });
+    })
+    .AddKeycloakJwtBearer(
+        serviceName: "keycloak",
+        realm: "DevHub",
+        authenticationScheme: PlatformAuthentication.KeycloakScheme,
+        options =>
+        {
+            options.Audience = "telemetry-api";
+            options.MapInboundClaims = false;
+            if (builder.Environment.IsDevelopment())
+            {
+                options.RequireHttpsMetadata = false;
+            }
+        }
+    );
 builder.Services.AddAuthorization(options =>
     options.AddPolicy(TelemetryGrpcService.ReadScope, policy => policy.RequireClaim("scope", TelemetryGrpcService.ReadScope))
 );

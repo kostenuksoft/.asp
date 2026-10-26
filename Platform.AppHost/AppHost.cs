@@ -81,6 +81,14 @@ IResourceBuilder<ProjectResource> identityServer = builder.AddProject<Projects.P
 
 EndpointReference identityServerEndpoint = identityServer.GetEndpoint("https");
 
+IResourceBuilder<ParameterResource> keycloakAdminPassword = builder.AddParameter("keycloak-admin-password", secret: true);
+
+IResourceBuilder<KeycloakResource> keycloak = builder.AddKeycloak("keycloak", 8080, adminPassword: keycloakAdminPassword)
+    .WithDataVolume()
+    .WithContainerName("devhub-keycloak")
+    .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
+    .WithLifetime(ContainerLifetime.Persistent);
+
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
     .WaitFor(cicdDb)
@@ -88,6 +96,8 @@ IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("
     .WaitFor(messaging)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
+    .WithReference(keycloak)
+    .WaitFor(keycloak)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
@@ -99,6 +109,8 @@ IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registr
     .WaitFor(messaging)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
+    .WithReference(keycloak)
+    .WaitFor(keycloak)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
@@ -108,6 +120,15 @@ IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Teleme
     .WaitFor(messaging)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
+    .WithReference(keycloak)
+    .WaitFor(keycloak)
+    .WithHttpHealthCheck("/health/ready");
+
+IResourceBuilder<ProjectResource> secrets = builder.AddProject<Projects.Secrets_Api>("secrets-api")
+    .WithEnvironment("Jwt__SecretKey", jwtSecret)
+    .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
+    .WithReference(keycloak)
+    .WaitFor(keycloak)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator")
@@ -130,11 +151,14 @@ builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WithReference(cicd)
     .WithReference(registry)
     .WithReference(telemetry)
+    .WithReference(secrets)
     .WithReference(aggregator)
     .WaitFor(auth)
     .WaitFor(aggregator)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
+    .WithReference(keycloak)
+    .WaitFor(keycloak)
     .WithHttpHealthCheck("/health/ready");
 
 builder
