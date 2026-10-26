@@ -189,8 +189,11 @@ dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.CA1848.severity = none
 dotnet_diagnostic.IDE0058.severity = none
 
-[**/Migrations/*.cs]
+[**/Migrations/**.cs]
 generated_code = true
+
+[Platform.IdentityServer/Pages/**.cs]
+dotnet_analyzer_diagnostic.severity = none
 
 [Services/Telemetry/Telemetry.Domain/Entities/*.cs]
 dotnet_style_readonly_field = false

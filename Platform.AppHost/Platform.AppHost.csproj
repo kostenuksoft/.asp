@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Services\Telemetry\Telemetry.WebApi\Telemetry.WebApi.csproj" />
     <ProjectReference Include="..\Platform.Aggregator\Platform.Aggregator.csproj" />
     <ProjectReference Include="..\Platform.ApiGateway\Platform.ApiGateway.csproj" />
+    <ProjectReference Include="..\Platform.IdentityServer\Platform.IdentityServer.csproj" />
   </ItemGroup>
 
 </Project>

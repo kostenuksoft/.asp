@@ -17,6 +17,12 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
     {
         options.MapInboundClaims = false;
         options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    })
+    .AddJwtBearer(PlatformAuthentication.IdentityServerScheme, options =>
+    {
+        options.Authority = builder.Configuration["IdentityServer:Authority"];
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters.ValidAudiences = ["cicd_api", "registry_api", "telemetry_api", "secrets_api"];
     });
 builder.Services.AddAuthorization();
 

@@ -12,6 +12,7 @@ using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi;
 using Platform.EventBus;
 using Platform.ServiceDefaults;
 
@@ -76,6 +77,12 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
     {
         options.MapInboundClaims = false;
         options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    })
+    .AddJwtBearer(PlatformAuthentication.IdentityServerScheme, options =>
+    {
+        options.Authority = builder.Configuration["IdentityServer:Authority"];
+        options.Audience = "cicd_api";
+        options.MapInboundClaims = false;
     });
 builder.Services.AddAuthorization(options =>
 {
@@ -83,6 +90,8 @@ builder.Services.AddAuthorization(options =>
     {
         options.AddPolicy(permission, policy => policy.Requirements.Add(new PermissionRequirement(permission)));
     }
+
+    options.AddPolicy(Permissions.ReadScope, policy => policy.RequireClaim("scope", Permissions.ReadScope));
 });
 builder.Services.AddSingleton<IAuthorizationHandler, KeycloakPermissionHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, ScopePermissionHandler>();
@@ -91,7 +100,31 @@ builder.Services.AddSingleton<IAuthorizationHandler, RolePermissionHandler>();
 builder.Services.AddControllers();
 builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    string authority = builder.Configuration["IdentityServer:Authority"] ?? "https://localhost:5005";
+    options.AddSecurityDefinition(PlatformAuthentication.IdentityServerScheme, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.OAuth2,
+        Flows = new OpenApiOAuthFlows
+        {
+            AuthorizationCode = new OpenApiOAuthFlow
+            {
+                AuthorizationUrl = new Uri($"{authority}/connect/authorize"),
+                TokenUrl = new Uri($"{authority}/connect/token"),
+                Scopes = new Dictionary<string, string>
+                {
+                    [Permissions.ReadScope] = "Read pipelines, build runs and agents",
+                    [Permissions.WriteScope] = "Queue, start, change and delete build runs and pipelines",
+                },
+            },
+        },
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference(PlatformAuthentication.IdentityServerScheme, document)] = [Permissions.ReadScope, Permissions.WriteScope],
+    });
+});
 
 WebApplication app = builder.Build();
 
@@ -101,7 +134,12 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.OAuthClientId("swagger");
+        options.OAuthUsePkce();
+        options.OAuthScopes(Permissions.ReadScope, Permissions.WriteScope);
+    });
 }
 
 app.UseAuthentication();

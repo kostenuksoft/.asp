@@ -50,8 +50,16 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
     {
         options.MapInboundClaims = false;
         options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
+    })
+    .AddJwtBearer(PlatformAuthentication.IdentityServerScheme, options =>
+    {
+        options.Authority = builder.Configuration["IdentityServer:Authority"];
+        options.Audience = "telemetry_api";
+        options.MapInboundClaims = false;
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy(TelemetryGrpcService.ReadScope, policy => policy.RequireClaim("scope", TelemetryGrpcService.ReadScope))
+);
 
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase))

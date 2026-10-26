@@ -1,12 +1,15 @@
+using Cicd.Api.Authorization;
 using Cicd.Bll.Dtos;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Domain.Exceptions;
 using Cicd.Grpc;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cicd.Api.Grpc;
 
+[Authorize(Policy = Permissions.ReadScope)]
 public sealed class CicdGrpcService(IBuildRunService buildRuns) : CicdService.CicdServiceBase
 {
     public override async Task<RunTimelineReply> GetRunTimeline(

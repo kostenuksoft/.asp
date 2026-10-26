@@ -65,12 +65,29 @@ IResourceBuilder<ProjectResource> auth = builder.AddProject<Projects.Auth_Api>("
     .WithEnvironment("Auth__AdminPassword", authAdminPassword)
     .WithHttpHealthCheck("/health/ready");
 
+IResourceBuilder<SqlServerDatabaseResource> identityServerDb = identitySql.AddDatabase("IdentityServerDb", "DevHub_IdentityServer");
+
+IResourceBuilder<ParameterResource> postmanClientSecret = builder.AddParameter("postman-client-secret", secret: true);
+IResourceBuilder<ParameterResource> aggregatorClientSecret = builder.AddParameter("aggregator-client-secret", secret: true);
+IResourceBuilder<ParameterResource> identityServerUserPassword = builder.AddParameter("identityserver-user-password", secret: true);
+
+IResourceBuilder<ProjectResource> identityServer = builder.AddProject<Projects.Platform_IdentityServer>("identityserver")
+    .WithReference(identityServerDb)
+    .WaitFor(identityServerDb)
+    .WithEnvironment("IdentityServer__Clients__PostmanSecret", postmanClientSecret)
+    .WithEnvironment("IdentityServer__Clients__AggregatorSecret", aggregatorClientSecret)
+    .WithEnvironment("IdentityServer__SeedUser__Password", identityServerUserPassword)
+    .WithHttpHealthCheck("/health/ready");
+
+EndpointReference identityServerEndpoint = identityServer.GetEndpoint("https");
+
 IResourceBuilder<ProjectResource> cicd = builder.AddProject<Projects.Cicd_Api>("cicd-api")
     .WithReference(cicdDb)
     .WaitFor(cicdDb)
     .WithReference(messaging)
     .WaitFor(messaging)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
+    .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registry_Api>("registry-api")
@@ -81,6 +98,7 @@ IResourceBuilder<ProjectResource> registry = builder.AddProject<Projects.Registr
     .WithReference(messaging)
     .WaitFor(messaging)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
+    .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Telemetry_WebApi>("telemetry-api")
@@ -89,6 +107,7 @@ IResourceBuilder<ProjectResource> telemetry = builder.AddProject<Projects.Teleme
     .WithReference(messaging)
     .WaitFor(messaging)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
+    .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
     .WithHttpHealthCheck("/health/ready");
 
 IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator")
@@ -100,6 +119,9 @@ IResourceBuilder<ProjectResource> aggregator = builder.AddProject<Projects.Platf
     .WaitFor(registry)
     .WaitFor(telemetry)
     .WaitFor(redis)
+    .WaitFor(identityServer)
+    .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
+    .WithEnvironment("IdentityServer__ClientSecret", aggregatorClientSecret)
     .WithHttpHealthCheck("/health/ready");
 
 builder.AddProject<Projects.Platform_ApiGateway>("gateway")
@@ -112,6 +134,7 @@ builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WaitFor(auth)
     .WaitFor(aggregator)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
+    .WithEnvironment("IdentityServer__Authority", identityServerEndpoint)
     .WithHttpHealthCheck("/health/ready");
 
 builder
