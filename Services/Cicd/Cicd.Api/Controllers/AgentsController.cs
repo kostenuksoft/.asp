@@ -1,3 +1,4 @@
+using Cicd.Api.Authorization;
 using Cicd.Bll.Dtos;
 using Cicd.Bll.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace Cicd.Api.Controllers;
 public sealed class AgentsController(IAgentService agents) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<AgentDto>>> GetByStatus(
@@ -18,6 +20,7 @@ public sealed class AgentsController(IAgentService agents) : ControllerBase
     ) => Ok(await agents.GetByStatusAsync(status, cancellationToken));
 
     [HttpGet("{id:long}")]
+    [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AgentDto>> GetById(

@@ -1,4 +1,5 @@
 using System.Reflection;
+using Cicd.Api.Authorization;
 using Cicd.Api.ErrorHandling;
 using Cicd.Api.Grpc;
 using Cicd.Api.HealthChecks;
@@ -9,6 +10,7 @@ using Cicd.Api.Metrics;
 using Cicd.Bll.Services;
 using Cicd.Bll.Services.Interfaces;
 using Cicd.Dal.UnitOfWork;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Platform.EventBus;
 using Platform.ServiceDefaults;
@@ -75,7 +77,16 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
         options.MapInboundClaims = false;
         options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (string permission in Permissions.All)
+    {
+        options.AddPolicy(permission, policy => policy.Requirements.Add(new PermissionRequirement(permission)));
+    }
+});
+builder.Services.AddSingleton<IAuthorizationHandler, KeycloakPermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, ScopePermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, RolePermissionHandler>();
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());

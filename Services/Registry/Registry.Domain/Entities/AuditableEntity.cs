@@ -12,11 +12,24 @@ public abstract class AuditableEntity
 
     public bool IsDeleted { get; private set; }
 
-    public void MarkUpdated(DateTime updatedAt) => UpdatedAt = updatedAt;
+    public void MarkCreated(string createdBy) => CreatedBy = createdBy;
 
-    public void MarkDeleted(DateTime deletedAt)
+    public void MarkUpdated(
+        DateTime updatedAt,
+        string? updatedBy
+    )
+    {
+        UpdatedAt = updatedAt;
+        UpdatedBy = updatedBy;
+    }
+
+    public void MarkDeleted(
+        DateTime deletedAt,
+        string? deletedBy
+    )
     {
         IsDeleted = true;
         UpdatedAt = deletedAt;
+        UpdatedBy = deletedBy;
     }
 }

@@ -1,11 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Registry.Dal.Auditing;
 using Registry.Dal.Outbox;
 using Registry.Domain.Entities;
 
 namespace Registry.Dal;
 
-public sealed class RegistryDbContext(DbContextOptions<RegistryDbContext> options) : DbContext(options)
+public sealed class RegistryDbContext(
+    DbContextOptions<RegistryDbContext> options,
+    ICurrentUser currentUser
+)
+    : DbContext(options)
 {
     public DbSet<Publisher> Publishers => Set<Publisher>();
 
@@ -27,17 +32,22 @@ public sealed class RegistryDbContext(DbContextOptions<RegistryDbContext> option
     )
     {
         DateTime now = DateTime.UtcNow;
+        string? userName = currentUser.UserName;
 
         foreach (EntityEntry<AuditableEntity> entry in ChangeTracker.Entries<AuditableEntity>())
         {
-            if (entry.State == EntityState.Deleted)
+            if (entry.State == EntityState.Added && userName is not null)
+            {
+                entry.Entity.MarkCreated(userName);
+            }
+            else if (entry.State == EntityState.Deleted)
             {
                 entry.State = EntityState.Unchanged;
-                entry.Entity.MarkDeleted(now);
+                entry.Entity.MarkDeleted(now, userName);
             }
             else if (entry.State == EntityState.Modified)
             {
-                entry.Entity.MarkUpdated(now);
+                entry.Entity.MarkUpdated(now, userName);
             }
         }
 

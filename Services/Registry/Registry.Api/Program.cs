@@ -1,8 +1,11 @@
 using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using Platform.EventBus;
 using Platform.ServiceDefaults;
+using Registry.Api.Auditing;
+using Registry.Api.Authorization;
 using Registry.Api.ErrorHandling;
 using Registry.Api.Grpc;
 using Registry.Api.IntegrationEvents;
@@ -13,6 +16,7 @@ using Registry.Bll.Caching;
 using Registry.Bll.Services;
 using Registry.Bll.Services.Interfaces;
 using Registry.Dal;
+using Registry.Dal.Auditing;
 using Registry.Dal.Seeding;
 using Registry.Dal.UnitOfWork;
 using StackExchange.Redis;
@@ -26,6 +30,7 @@ string connectionString = builder.Configuration.GetConnectionString("RegistryDb"
 
 Assembly businessLayer = typeof(PackageService).Assembly;
 
+builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 builder.Services.AddDbContext<RegistryDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -106,7 +111,16 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
         options.MapInboundClaims = false;
         options.TokenValidationParameters = PlatformAuthentication.AuthServiceTokenParameters(builder.Configuration);
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (string permission in Permissions.All)
+    {
+        options.AddPolicy(permission, policy => policy.Requirements.Add(new PermissionRequirement(permission)));
+    }
+});
+builder.Services.AddSingleton<IAuthorizationHandler, KeycloakPermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, ScopePermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, RolePermissionHandler>();
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
