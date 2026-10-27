@@ -37,7 +37,10 @@ public sealed class RefreshTokenService(
     )
     {
         string hash = Hash(token);
-        RefreshToken? current = await context.RefreshTokens.SingleOrDefaultAsync(row => row.TokenHash == hash, cancellationToken);
+        RefreshToken? current = await context.RefreshTokens.SingleOrDefaultAsync(
+            row => row.TokenHash == hash,
+            cancellationToken
+        );
         if (current is null)
         {
             return null;
@@ -59,7 +62,10 @@ public sealed class RefreshTokenService(
             return null;
         }
 
-        ApplicationUser? user = await context.Users.SingleOrDefaultAsync(row => row.Id == current.UserId, cancellationToken);
+        ApplicationUser? user = await context.Users.SingleOrDefaultAsync(
+            row => row.Id == current.UserId,
+            cancellationToken
+        );
         if (user is null)
         {
             return null;
@@ -80,7 +86,10 @@ public sealed class RefreshTokenService(
     )
     {
         string hash = Hash(token);
-        RefreshToken? row = await context.RefreshTokens.SingleOrDefaultAsync(candidate => candidate.TokenHash == hash, cancellationToken);
+        RefreshToken? row = await context.RefreshTokens.SingleOrDefaultAsync(
+            candidate => candidate.TokenHash == hash,
+            cancellationToken
+        );
         return row is { IsActive: true } ? row : null;
     }
 

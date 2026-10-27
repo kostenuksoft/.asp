@@ -5,7 +5,10 @@ namespace Cicd.Bll.Dtos;
 public sealed class TransitionBuildRunDto
 {
     [Required]
-    [RegularExpression("^(Queued|Running|Succeeded|Failed|Cancelled)$", ErrorMessage = "ToStatus must be a build run status.")]
+    [RegularExpression(
+        "^(Queued|Running|Succeeded|Failed|Cancelled)$",
+        ErrorMessage = "ToStatus must be a build run status."
+    )]
     public string ToStatus { get; set; } = string.Empty;
 
     [StringLength(400)]

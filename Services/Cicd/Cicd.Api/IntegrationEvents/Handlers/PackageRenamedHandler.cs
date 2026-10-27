@@ -3,7 +3,10 @@ using Cicd.Dal.UnitOfWork;
 
 namespace Cicd.Api.IntegrationEvents.Handlers;
 
-public sealed class PackageRenamedHandler(IUnitOfWork unitOfWork, ILogger<PackageRenamedHandler> logger)
+public sealed class PackageRenamedHandler(
+    IUnitOfWork unitOfWork,
+    ILogger<PackageRenamedHandler> logger
+)
     : PackageCopyHandler<PackageRenamedEvent>(unitOfWork, logger)
 {
     protected override async Task OnAppliedAsync(

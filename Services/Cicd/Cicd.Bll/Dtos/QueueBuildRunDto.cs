@@ -24,7 +24,10 @@ public sealed class QueueBuildRunDto
     public string TriggeredBy { get; set; } = string.Empty;
 
     [Required]
-    [RegularExpression("^(Push|PullRequest|Manual|Schedule|Api)$", ErrorMessage = "TriggerKind must be Push, PullRequest, Manual, Schedule or Api.")]
+    [RegularExpression(
+        "^(Push|PullRequest|Manual|Schedule|Api)$",
+        ErrorMessage = "TriggerKind must be Push, PullRequest, Manual, Schedule or Api."
+    )]
     public string TriggerKind { get; set; } = string.Empty;
 
     public string? TriggerPayload { get; set; }

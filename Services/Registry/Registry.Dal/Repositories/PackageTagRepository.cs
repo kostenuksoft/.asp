@@ -4,7 +4,8 @@ using Registry.Domain.Entities;
 
 namespace Registry.Dal.Repositories;
 
-public sealed class PackageTagRepository(RegistryDbContext context) : GenericRepository<PackageTag>(context), IPackageTagRepository
+public sealed class PackageTagRepository(RegistryDbContext context)
+    : GenericRepository<PackageTag>(context), IPackageTagRepository
 {
     public async Task<IReadOnlyList<Package>> GetRecentlyTaggedAsync(
         string tagName,

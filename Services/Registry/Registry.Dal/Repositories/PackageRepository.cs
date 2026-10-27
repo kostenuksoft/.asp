@@ -4,7 +4,8 @@ using Registry.Domain.Entities;
 
 namespace Registry.Dal.Repositories;
 
-public sealed class PackageRepository(RegistryDbContext context) : GenericRepository<Package>(context), IPackageRepository
+public sealed class PackageRepository(RegistryDbContext context)
+    : GenericRepository<Package>(context), IPackageRepository
 {
     public Task<Package?> GetWithDetailsAsync(
         long packageId,

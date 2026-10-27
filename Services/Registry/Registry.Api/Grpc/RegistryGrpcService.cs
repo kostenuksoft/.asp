@@ -48,7 +48,10 @@ public sealed class RegistryGrpcService(IPackageService packages) : RegistryServ
 
         if (request.PackageIds.Count is 0 or > MaxBatchSize)
         {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Between 1 and {MaxBatchSize} package ids are required."));
+            throw new RpcException(new Status(
+                StatusCode.InvalidArgument,
+                $"Between 1 and {MaxBatchSize} package ids are required."
+            ));
         }
 
         if (request.PackageIds.Any(packageId => packageId <= 0))

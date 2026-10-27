@@ -16,7 +16,9 @@ public sealed class GrpcLoggingInterceptor(ILogger<GrpcLoggingInterceptor> logge
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(continuation);
 
-        using IDisposable? scope = logger.BeginScope(new Dictionary<string, object> { ["GrpcMethod"] = context.Method });
+        using IDisposable? scope = logger.BeginScope(
+            new Dictionary<string, object> { ["GrpcMethod"] = context.Method }
+        );
         Stopwatch stopwatch = Stopwatch.StartNew();
         try
         {

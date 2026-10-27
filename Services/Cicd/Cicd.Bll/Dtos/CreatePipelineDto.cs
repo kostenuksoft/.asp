@@ -10,7 +10,10 @@ public sealed class CreatePipelineDto
 
     [Required]
     [StringLength(400)]
-    [RegularExpression("^(https?://|git@).+", ErrorMessage = "RepositoryUrl must start with http://, https:// or git@.")]
+    [RegularExpression(
+        "^(https?://|git@).+",
+        ErrorMessage = "RepositoryUrl must start with http://, https:// or git@."
+    )]
     public string RepositoryUrl { get; set; } = string.Empty;
 
     [Required]
@@ -21,7 +24,10 @@ public sealed class CreatePipelineDto
     public long? PackageId { get; set; }
 
     [StringLength(300)]
-    [RegularExpression("^[a-z0-9-]{2,}/[A-Za-z0-9._-]{2,}$", ErrorMessage = "PackageKey must look like publisher/package.")]
+    [RegularExpression(
+        "^[a-z0-9-]{2,}/[A-Za-z0-9._-]{2,}$",
+        ErrorMessage = "PackageKey must look like publisher/package."
+    )]
     public string? PackageKey { get; set; }
 
     public bool IsEnabled { get; set; } = true;

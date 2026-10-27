@@ -7,7 +7,11 @@ using Cicd.Domain.Models;
 
 namespace Cicd.Bll.Services;
 
-public sealed class PipelineService(IUnitOfWork unitOfWork, IMapper mapper) : IPipelineService
+public sealed class PipelineService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper
+)
+    : IPipelineService
 {
     public async Task<IReadOnlyList<PipelineDto>> GetAllAsync(CancellationToken cancellationToken)
     {

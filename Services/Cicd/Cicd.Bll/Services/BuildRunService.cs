@@ -11,7 +11,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Cicd.Bll.Services;
 
-public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<BuildRunService> logger) : IBuildRunService
+public sealed class BuildRunService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper,
+    ILogger<BuildRunService> logger
+)
+    : IBuildRunService
 {
     private static readonly ActivitySource s_activitySource = new("Cicd.Api");
 
@@ -79,7 +84,11 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
             TriggerPayload = input.TriggerPayload,
         };
 
-        long buildRunId = await unitOfWork.BuildRuns.QueueAsync(new BuildRun { PipelineId = pipeline.PipelineId }, detail, cancellationToken);
+        long buildRunId = await unitOfWork.BuildRuns.QueueAsync(
+            new BuildRun { PipelineId = pipeline.PipelineId },
+            detail,
+            cancellationToken
+        );
         activity?.SetTag("build_run.id", buildRunId);
         logger.LogInformation(
             "Build run {BuildRunId} queued for pipeline {PipelineId} on branch {BranchName}, trigger {TriggerKind}",
@@ -104,10 +113,18 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
             ?? throw new NotFoundException($"Build run {buildRunId} was not found.");
         if (run.Status != BuildRunStatus.Queued)
         {
-            throw new BusinessConflictException($"Build run {buildRunId} is {run.Status}; only a queued run can be started.");
+            throw new BusinessConflictException(
+                $"Build run {buildRunId} is {run.Status}; only a queued run can be started."
+            );
         }
 
-        long? agentId = await unitOfWork.Agents.LeaseAsync(buildRunId, input.OperatingSystem, input.LeasedBy, cancellationToken);
+        long? agentId = await unitOfWork.Agents.LeaseAsync(
+            buildRunId,
+            input.OperatingSystem,
+            input.LeasedBy,
+            cancellationToken
+        );
+
         if (agentId is null)
         {
             throw new BusinessConflictException($"No idle {input.OperatingSystem} agent is available.");
@@ -155,7 +172,9 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
                 ?? throw new NotFoundException($"Build run {buildRunId} was not found.");
             if (run.Status != BuildRunStatus.Running)
             {
-                throw new BusinessConflictException($"Build run {buildRunId} is {run.Status}; only a running run can be completed.");
+                throw new BusinessConflictException(
+                    $"Build run {buildRunId} is {run.Status}; only a running run can be completed."
+                );
             }
 
             Pipeline pipeline = await unitOfWork.Pipelines.GetByIdAsync(run.PipelineId, cancellationToken)
@@ -166,7 +185,9 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
             }
 
             Package package = await unitOfWork.Packages.GetByIdAsync(pipeline.PackageId.Value, cancellationToken)
-                ?? throw new BusinessConflictException($"Package {pipeline.PackageId} has no local copy yet; it arrives with the Registry's events.");
+                ?? throw new BusinessConflictException(
+                    $"Package {pipeline.PackageId} has no local copy yet; it arrives with the Registry's events."
+                );
             if (package.IsDeleted)
             {
                 throw new BusinessConflictException($"Package '{package.PackageKey}' was deleted in the Registry.");
@@ -213,7 +234,11 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
 
             await unitOfWork.CommitAsync(cancellationToken);
             committed = true;
-            logger.LogInformation("Build run {BuildRunId} completed with {ArtifactCount} artefact(s)", buildRunId, input.Artifacts.Count);
+            logger.LogInformation(
+                "Build run {BuildRunId} completed with {ArtifactCount} artefact(s)",
+                buildRunId,
+                input.Artifacts.Count
+            );
         }
         finally
         {

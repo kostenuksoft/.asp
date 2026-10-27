@@ -17,7 +17,9 @@ public sealed class Tag : AuditableEntity
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length < 2 || !name.All(IsNameCharacter))
         {
-            throw new DomainException("Tag name must have at least 2 characters: lowercase letters, digits or hyphens.");
+            throw new DomainException(
+                "Tag name must have at least 2 characters: lowercase letters, digits or hyphens."
+            );
         }
 
         Name = name;

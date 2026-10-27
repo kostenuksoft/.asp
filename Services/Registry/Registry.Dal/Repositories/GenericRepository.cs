@@ -38,5 +38,7 @@ public class GenericRepository<T>(RegistryDbContext context) : IGenericRepositor
     public Task<int> CountAsync(
         ISpecification<T> specification,
         CancellationToken cancellationToken = default
-    ) => SpecificationEvaluator.Default.GetQuery(Set, specification, evaluateCriteriaOnly: true).CountAsync(cancellationToken);
+    ) => SpecificationEvaluator.Default
+        .GetQuery(Set, specification, evaluateCriteriaOnly: true)
+        .CountAsync(cancellationToken);
 }

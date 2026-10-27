@@ -16,9 +16,13 @@ public sealed class PackageTagConfiguration : IEntityTypeConfiguration<PackageTa
 
         builder.Property(packageTag => packageTag.AssignedAt).HasPrecision(3).HasDefaultValueSql("SYSUTCDATETIME()");
         builder.Property(packageTag => packageTag.CreatedAt).HasPrecision(3).HasDefaultValueSql("SYSUTCDATETIME()");
-        builder.Property(packageTag => packageTag.CreatedBy).IsRequired().HasMaxLength(128).HasDefaultValueSql("SUSER_SNAME()");
+        builder.Property(packageTag => packageTag.CreatedBy)
+            .IsRequired()
+            .HasMaxLength(128)
+            .HasDefaultValueSql("SUSER_SNAME()");
 
-        builder.HasIndex(packageTag => new { packageTag.TagId, packageTag.AssignedAt }, "IX_PackageTag_TagId_AssignedAt")
+        builder
+            .HasIndex(packageTag => new { packageTag.TagId, packageTag.AssignedAt }, "IX_PackageTag_TagId_AssignedAt")
             .IsDescending(false, true)
             .IncludeProperties(packageTag => packageTag.PackageId);
 

@@ -4,7 +4,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class ProcessedEventRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public sealed class ProcessedEventRepository(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
     : RepositoryBase(connection, currentTransaction), IProcessedEventRepository
 {
     private const int PrimaryKeyViolation = 2627;

@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Platform.IdentityServer.Data;
 
-public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : IdentityDbContext<ApplicationUser>(options)
 {
     protected override void OnModelCreating(ModelBuilder builder)
     {

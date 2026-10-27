@@ -47,7 +47,12 @@ public abstract class RabbitMqConsumer(
 
         AsyncEventingBasicConsumer consumer = new(_channel);
         consumer.ReceivedAsync += OnMessageAsync;
-        string consumerTag = await _channel.BasicConsumeAsync(Subscription.Queue, autoAck: false, consumer, stoppingToken);
+        string consumerTag = await _channel.BasicConsumeAsync(
+            Subscription.Queue,
+            autoAck: false,
+            consumer,
+            stoppingToken
+        );
         logger.LogInformation(
             "Consuming {Queue} bound to {Exchange} with {RoutingPatterns}, prefetch {PrefetchCount}",
             Subscription.Queue,
@@ -101,14 +106,19 @@ public abstract class RabbitMqConsumer(
         await _processing.WaitAsync(CancellationToken.None);
         try
         {
-            logger.LogInformation("Received {EventType} {EventId} from {Queue}", eventType, eventId, Subscription.Queue);
+            logger.LogInformation(
+                "Received {EventType} {EventId} from {Queue}",
+                eventType,
+                eventId,
+                Subscription.Queue
+            );
 
             IntegrationEvent integrationEvent = Deserialize(delivery);
             await using (AsyncServiceScope serviceScope = scopeFactory.CreateAsyncScope())
             {
-                IIntegrationEventHandler handler = (IIntegrationEventHandler)serviceScope.ServiceProvider.GetRequiredService(
-                    typeof(IIntegrationEventHandler<>).MakeGenericType(integrationEvent.GetType())
-                );
+                Type handlerType = typeof(IIntegrationEventHandler<>).MakeGenericType(integrationEvent.GetType());
+                IIntegrationEventHandler handler =
+                    (IIntegrationEventHandler)serviceScope.ServiceProvider.GetRequiredService(handlerType);
                 await handler.HandleAsync(integrationEvent, CancellationToken.None);
             }
 
@@ -146,7 +156,9 @@ public abstract class RabbitMqConsumer(
         string? eventType = delivery.BasicProperties.Type;
         if (eventType is null || !EventTypes.TryGetValue(eventType, out Type? clrType))
         {
-            throw new UnprocessableMessageException($"Event type '{eventType}' is not handled by {Subscription.Queue}.");
+            throw new UnprocessableMessageException(
+                $"Event type '{eventType}' is not handled by {Subscription.Queue}."
+            );
         }
 
         int schemaVersion = EventBusHeaders.ReadInt(
@@ -156,11 +168,15 @@ public abstract class RabbitMqConsumer(
         );
         if (schemaVersion > IntegrationEvent.SchemaVersion)
         {
-            throw new UnprocessableMessageException($"Schema version {schemaVersion} of {eventType} is newer than {IntegrationEvent.SchemaVersion}.");
+            throw new UnprocessableMessageException(
+                $"Schema version {schemaVersion} of {eventType} is newer than {IntegrationEvent.SchemaVersion}."
+            );
         }
 
         return JsonSerializer.Deserialize(delivery.Body.Span, clrType, EventBusJson.Options) as IntegrationEvent
-            ?? throw new UnprocessableMessageException($"Message {delivery.BasicProperties.MessageId} has an empty body.");
+            ?? throw new UnprocessableMessageException(
+                $"Message {delivery.BasicProperties.MessageId} has an empty body."
+            );
     }
 
     private async Task RetryOrDeadLetterAsync(
@@ -187,12 +203,20 @@ public abstract class RabbitMqConsumer(
             return;
         }
 
-        Dictionary<string, object?> headers = new(delivery.BasicProperties.Headers ?? new Dictionary<string, object?>());
+        Dictionary<string, object?> headers = new(
+            delivery.BasicProperties.Headers ?? new Dictionary<string, object?>()
+        );
         headers[EventBusHeaders.RetryCount] = attempt + 1;
         BasicProperties properties = new(delivery.BasicProperties);
         properties.Headers = headers;
 
-        await channel.BasicPublishAsync(string.Empty, Subscription.RetryQueue, mandatory: true, properties, delivery.Body);
+        await channel.BasicPublishAsync(
+            string.Empty,
+            Subscription.RetryQueue,
+            mandatory: true,
+            properties,
+            delivery.Body
+        );
         await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false);
         logger.LogWarning(
             exception,

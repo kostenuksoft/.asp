@@ -5,7 +5,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class AgentRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public sealed class AgentRepository(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
     : RepositoryBase(connection, currentTransaction), IAgentRepository
 {
     private const string SelectColumns =

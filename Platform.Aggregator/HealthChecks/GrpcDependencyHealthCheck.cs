@@ -35,7 +35,12 @@ public sealed class GrpcDependencyHealthCheck(
         }
         catch (RpcException exception)
         {
-            logger.LogWarning(exception, "{Service} health check failed with {GrpcStatus}", service, exception.StatusCode);
+            logger.LogWarning(
+                exception,
+                "{Service} health check failed with {GrpcStatus}",
+                service,
+                exception.StatusCode
+            );
             return new HealthCheckResult(context.Registration.FailureStatus, $"{service} is unavailable", exception);
         }
     }

@@ -51,5 +51,12 @@ public abstract class BaseDapperRepository<T>(
         string name,
         object? parameters,
         CancellationToken cancellationToken
-    ) => new(name, parameters, Transaction, CommandTimeoutSeconds, CommandType.StoredProcedure, cancellationToken: cancellationToken);
+    ) => new(
+        name,
+        parameters,
+        Transaction,
+        CommandTimeoutSeconds,
+        CommandType.StoredProcedure,
+        cancellationToken: cancellationToken
+    );
 }

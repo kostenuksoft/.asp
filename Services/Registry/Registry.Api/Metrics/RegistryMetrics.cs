@@ -19,9 +19,21 @@ public sealed class RegistryMetrics
         ArgumentNullException.ThrowIfNull(meterFactory);
 
         Meter meter = meterFactory.Create(MeterName);
-        _packagesCreated = meter.CreateCounter<long>("packages.created", unit: "{package}", description: "Packages published to the registry");
-        _licensePricesChanged = meter.CreateCounter<long>("packages.license_price_changed", unit: "{change}", description: "Licence price changes");
-        _operationDuration = meter.CreateHistogram<double>("packages.operation.duration", unit: "ms", description: "Duration of package write operations");
+        _packagesCreated = meter.CreateCounter<long>(
+            "packages.created",
+            unit: "{package}",
+            description: "Packages published to the registry"
+        );
+        _licensePricesChanged = meter.CreateCounter<long>(
+            "packages.license_price_changed",
+            unit: "{change}",
+            description: "Licence price changes"
+        );
+        _operationDuration = meter.CreateHistogram<double>(
+            "packages.operation.duration",
+            unit: "ms",
+            description: "Duration of package write operations"
+        );
         meter.CreateObservableGauge(
             "registry.cache.entries",
             () => (memory as MemoryCache)?.GetCurrentStatistics()?.CurrentEntryCount ?? 0,

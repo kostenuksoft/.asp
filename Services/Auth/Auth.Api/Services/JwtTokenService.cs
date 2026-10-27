@@ -56,7 +56,9 @@ public sealed class JwtTokenService(
         JwtSecurityTokenHandler handler = new() { MapInboundClaims = false };
         try
         {
-            TokenValidationParameters parameters = bearerOptions.Get(JwtBearerDefaults.AuthenticationScheme).TokenValidationParameters;
+            TokenValidationParameters parameters = bearerOptions
+                .Get(JwtBearerDefaults.AuthenticationScheme)
+                .TokenValidationParameters;
             return handler.ValidateToken(token, parameters, out _);
         }
         catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)

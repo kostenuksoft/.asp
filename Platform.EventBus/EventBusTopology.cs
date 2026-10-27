@@ -57,7 +57,12 @@ public static class EventBusTopology
         );
         foreach (string routingPattern in subscription.RoutingPatterns)
         {
-            await channel.QueueBindAsync(subscription.Queue, subscription.Exchange, routingPattern, cancellationToken: cancellationToken);
+            await channel.QueueBindAsync(
+                subscription.Queue,
+                subscription.Exchange,
+                routingPattern,
+                cancellationToken: cancellationToken
+            );
         }
 
         await channel.QueueDeclareAsync(

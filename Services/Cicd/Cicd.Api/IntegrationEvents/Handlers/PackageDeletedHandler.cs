@@ -3,7 +3,10 @@ using Cicd.Dal.UnitOfWork;
 
 namespace Cicd.Api.IntegrationEvents.Handlers;
 
-public sealed class PackageDeletedHandler(IUnitOfWork unitOfWork, ILogger<PackageDeletedHandler> logger)
+public sealed class PackageDeletedHandler(
+    IUnitOfWork unitOfWork,
+    ILogger<PackageDeletedHandler> logger
+)
     : PackageCopyHandler<PackageDeletedEvent>(unitOfWork, logger)
 {
     protected override bool MarksDeleted => true;

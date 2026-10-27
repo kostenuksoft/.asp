@@ -35,7 +35,12 @@ public sealed class PackageService(
         int totalCount = await unitOfWork.Packages.CountAsync(specification, cancellationToken);
         IReadOnlyList<Package> packages = await unitOfWork.Packages.ListAsync(specification, cancellationToken);
 
-        return new PagedResult<PackageDto>(mapper.Map<IReadOnlyList<PackageDto>>(packages), totalCount, query.Page, pageSize);
+        return new PagedResult<PackageDto>(
+            mapper.Map<IReadOnlyList<PackageDto>>(packages),
+            totalCount,
+            query.Page,
+            pageSize
+        );
     }
 
     public async Task<IReadOnlyList<PackageDto>> GetTopDownloadedAsync(
@@ -222,7 +227,10 @@ public sealed class PackageService(
             throw new ConflictException($"Package '{package.Name}' already has tag '{tag.Name}'.");
         }
 
-        await unitOfWork.PackageTags.AddAsync(new PackageTag(packageId, input.TagId, DateTime.UtcNow), cancellationToken);
+        await unitOfWork.PackageTags.AddAsync(
+            new PackageTag(packageId, input.TagId, DateTime.UtcNow),
+            cancellationToken
+        );
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 

@@ -28,11 +28,11 @@ public sealed class GlobalExceptionHandler(
             ValidationException => (StatusCodes.Status400BadRequest, "Validation failed"),
             DomainException => (StatusCodes.Status400BadRequest, "Business rule violated"),
             ConflictException => (StatusCodes.Status409Conflict, "Conflict with the current version"),
-            MongoWriteException { WriteError.Category: ServerErrorCategory.DuplicateKey }
-                => (StatusCodes.Status409Conflict, "Duplicate key"),
+            MongoWriteException { WriteError.Category: ServerErrorCategory.DuplicateKey } =>
+                (StatusCodes.Status409Conflict, "Duplicate key"),
             MongoWriteException => (StatusCodes.Status400BadRequest, "Write rejected by the database"),
-            MongoConnectionException or TimeoutException
-                => (StatusCodes.Status503ServiceUnavailable, "Database unavailable"),
+            MongoConnectionException or TimeoutException =>
+                (StatusCodes.Status503ServiceUnavailable, "Database unavailable"),
             _ => (StatusCodes.Status500InternalServerError, "Unexpected server error"),
         };
 

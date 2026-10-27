@@ -13,15 +13,17 @@ public static class Permissions
 
     public static IReadOnlyList<string> All { get; } = [Read, Create, Update, Delete, Publish];
 
-    public static IReadOnlyDictionary<string, IReadOnlyList<string>> ByScope { get; } = new Dictionary<string, IReadOnlyList<string>>
-    {
-        [ReadScope] = [Read],
-        [WriteScope] = [Create, Update, Delete, Publish],
-    };
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> ByScope { get; } =
+        new Dictionary<string, IReadOnlyList<string>>
+        {
+            [ReadScope] = [Read],
+            [WriteScope] = [Create, Update, Delete, Publish],
+        };
 
-    public static IReadOnlyDictionary<string, IReadOnlyList<string>> ByAuthServiceRole { get; } = new Dictionary<string, IReadOnlyList<string>>
-    {
-        ["Admin"] = All,
-        ["User"] = [Read],
-    };
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> ByAuthServiceRole { get; } =
+        new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["Admin"] = All,
+            ["User"] = [Read],
+        };
 }

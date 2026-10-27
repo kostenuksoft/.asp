@@ -25,7 +25,9 @@ public static class IdentitySeeder
         string? adminUserName = configuration["Auth:AdminUserName"];
         string? adminEmail = configuration["Auth:AdminEmail"];
         string? adminPassword = configuration["Auth:AdminPassword"];
-        if (string.IsNullOrWhiteSpace(adminUserName) || string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        if (string.IsNullOrWhiteSpace(adminUserName)
+            || string.IsNullOrWhiteSpace(adminEmail)
+            || string.IsNullOrWhiteSpace(adminPassword))
         {
             return;
         }
@@ -47,9 +49,8 @@ public static class IdentitySeeder
         IdentityResult created = await userManager.CreateAsync(admin, adminPassword);
         if (!created.Succeeded)
         {
-            throw new InvalidOperationException(
-                $"Seeding the administrator failed: {string.Join("; ", created.Errors.Select(error => error.Description))}"
-            );
+            string errors = string.Join("; ", created.Errors.Select(error => error.Description));
+            throw new InvalidOperationException($"Seeding the administrator failed: {errors}");
         }
 
         await userManager.AddToRolesAsync(admin, Roles.All);

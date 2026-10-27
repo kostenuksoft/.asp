@@ -36,7 +36,8 @@ public sealed class ResourceServer
                 Description = $"Permission {scope} on {spec.ClientId}",
             }, options);
 
-            _authorizationScopes[scope] = new ClientAuthorizationScope($"{spec.ClientId}-scope-{scope}", new ClientAuthorizationScopeArgs
+            string resourceName = $"{spec.ClientId}-scope-{scope}";
+            _authorizationScopes[scope] = new ClientAuthorizationScope(resourceName, new ClientAuthorizationScopeArgs
             {
                 RealmId = realmId,
                 ResourceServerId = Client.ResourceServerId,
@@ -44,6 +45,10 @@ public sealed class ResourceServer
             }, options);
         }
 
+        CustomResourceOptions afterScopes = CustomResourceOptions.Merge(
+            options,
+            new CustomResourceOptions { DependsOn = _authorizationScopes.Values.ToList<Resource>() }
+        );
         Resource = new ClientAuthorizationResource($"{spec.ClientId}-resource", new ClientAuthorizationResourceArgs
         {
             RealmId = realmId,
@@ -51,7 +56,7 @@ public sealed class ResourceServer
             Name = spec.ClientId,
             DisplayName = spec.DisplayName,
             Scopes = spec.Scopes.ToList(),
-        }, CustomResourceOptions.Merge(options, new CustomResourceOptions { DependsOn = _authorizationScopes.Values.ToList<Resource>() }));
+        }, afterScopes);
     }
 
     public Client Client { get; }
@@ -60,9 +65,10 @@ public sealed class ResourceServer
 
     public Dictionary<string, Role> PermissionRoles { get; } = [];
 
-    public IEnumerable<Output<string>> PermissionRoleIdsFor(string realmRole) => _spec.ScopesByRole.TryGetValue(realmRole, out IReadOnlyList<string>? scopes)
-        ? scopes.Select(scope => PermissionRoles[scope].Id)
-        : [];
+    public IEnumerable<Output<string>> PermissionRoleIdsFor(string realmRole) =>
+        _spec.ScopesByRole.TryGetValue(realmRole, out IReadOnlyList<string>? scopes)
+            ? scopes.Select(scope => PermissionRoles[scope].Id)
+            : [];
 
     public void GrantByRole(IReadOnlyDictionary<string, Role> realmRoles)
     {
@@ -97,7 +103,8 @@ public sealed class ResourceServer
                 .Select(entry => entry.Key)
                 .ToList();
 
-            _ = new ClientAuthorizationPermission($"{_spec.ClientId}-permission-{scope}", new ClientAuthorizationPermissionArgs
+            string resourceName = $"{_spec.ClientId}-permission-{scope}";
+            _ = new ClientAuthorizationPermission(resourceName, new ClientAuthorizationPermissionArgs
             {
                 RealmId = _realmId,
                 ResourceServerId = Client.ResourceServerId,

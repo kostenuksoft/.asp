@@ -12,9 +12,15 @@ public sealed class PackageConfiguration : IEntityTypeConfiguration<Package>
 
         builder.ToTable("Package", AuditConfiguration.Schema, table =>
         {
-            table.HasCheckConstraint("CK_Package_Name_Format", "LEN([Name]) >= 2 AND [Name] NOT LIKE N'%[^a-zA-Z0-9._-]%'");
+            table.HasCheckConstraint(
+                "CK_Package_Name_Format",
+                "LEN([Name]) >= 2 AND [Name] NOT LIKE N'%[^a-zA-Z0-9._-]%'"
+            );
             table.HasCheckConstraint("CK_Package_DownloadCount_NonNegative", "[DownloadCount] >= 0");
-            table.HasCheckConstraint("CK_Package_ProjectUrl_Scheme", "[ProjectUrl] IS NULL OR [ProjectUrl] LIKE N'https://%'");
+            table.HasCheckConstraint(
+                "CK_Package_ProjectUrl_Scheme",
+                "[ProjectUrl] IS NULL OR [ProjectUrl] LIKE N'https://%'"
+            );
             table.HasCheckConstraint("CK_Package_LicensePrice_NonNegative", "[LicensePrice] >= 0");
         });
 

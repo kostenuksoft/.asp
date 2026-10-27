@@ -73,7 +73,11 @@ public sealed class UnitOfWorkTests
         await using UnitOfWork uow = new(TestDatabase.ConnectionString);
         await uow.BeginTransactionAsync(cancellationToken: Token);
 
-        long runId = await uow.BuildRuns.QueueAsync(new BuildRun { PipelineId = 1 }, NewDetail("tests", "rollback probe"), Token);
+        long runId = await uow.BuildRuns.QueueAsync(
+            new BuildRun { PipelineId = 1 },
+            NewDetail("tests", "rollback probe"),
+            Token
+        );
         Artifact duplicate = new()
         {
             PackageId = 2,
@@ -99,7 +103,11 @@ public sealed class UnitOfWorkTests
         await using UnitOfWork uow = new(TestDatabase.ConnectionString);
         await uow.BeginTransactionAsync(cancellationToken: Token);
 
-        long runId = await uow.BuildRuns.QueueAsync(new BuildRun { PipelineId = 1 }, NewDetail("tests", "illegal move"), Token);
+        long runId = await uow.BuildRuns.QueueAsync(
+            new BuildRun { PipelineId = 1 },
+            NewDetail("tests", "illegal move"),
+            Token
+        );
 
         await Assert.ThrowsAsync<BusinessConflictException>(() =>
             uow.BuildRuns.TransitionStatusAsync(runId, BuildRunStatus.Succeeded, null, "tests", null, Token)
@@ -116,7 +124,11 @@ public sealed class UnitOfWorkTests
         await using UnitOfWork uow = new(TestDatabase.ConnectionString);
         await uow.BeginTransactionAsync(cancellationToken: Token);
 
-        long runId = await uow.BuildRuns.QueueAsync(new BuildRun { PipelineId = 1 }, NewDetail("tests", "lease probe"), Token);
+        long runId = await uow.BuildRuns.QueueAsync(
+            new BuildRun { PipelineId = 1 },
+            NewDetail("tests", "lease probe"),
+            Token
+        );
         long? agentId = await uow.Agents.LeaseAsync(runId, "Linux", "tests", Token);
         Agent? agent = agentId is null ? null : await uow.Agents.GetByIdAsync(agentId.Value, Token);
         BuildRun? run = await uow.BuildRuns.GetByIdAsync(runId, Token);

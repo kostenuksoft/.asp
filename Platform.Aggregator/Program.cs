@@ -17,28 +17,48 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.Configure<ClientCredentialsOptions>(builder.Configuration.GetSection(ClientCredentialsOptions.SectionName));
+builder.Services.Configure<ClientCredentialsOptions>(
+    builder.Configuration.GetSection(ClientCredentialsOptions.SectionName)
+);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient(ClientCredentialsTokenProvider.HttpClientName);
 builder.Services.AddSingleton<ClientCredentialsTokenProvider>();
 builder.Services.AddTransient<ClientCredentialsHandler>();
 
-builder.Services.AddGrpcClient<CicdService.CicdServiceClient>(options => options.Address = new Uri("https://cicd-api"))
+builder.Services
+    .AddGrpcClient<CicdService.CicdServiceClient>(options =>
+        options.Address = new Uri("https://cicd-api")
+    )
     .AddHttpMessageHandler<ClientCredentialsHandler>()
     .WithGrpcRetry(ServicePolicy.Critical)
     .WithServicePolicy("cicd-api", ServicePolicy.Critical);
-builder.Services.AddGrpcClient<RegistryService.RegistryServiceClient>(options => options.Address = new Uri("https://registry-api"))
+builder.Services
+    .AddGrpcClient<RegistryService.RegistryServiceClient>(options =>
+        options.Address = new Uri("https://registry-api")
+    )
     .AddHttpMessageHandler<ClientCredentialsHandler>()
     .WithGrpcRetry(ServicePolicy.Critical)
     .WithServicePolicy("registry-api", ServicePolicy.Critical);
-builder.Services.AddGrpcClient<TelemetryService.TelemetryServiceClient>(options => options.Address = new Uri("https://telemetry-api"))
+builder.Services
+    .AddGrpcClient<TelemetryService.TelemetryServiceClient>(options =>
+        options.Address = new Uri("https://telemetry-api")
+    )
     .AddHttpMessageHandler<ClientCredentialsHandler>()
     .WithGrpcRetry(ServicePolicy.NonCritical)
     .WithServicePolicy("telemetry-api", ServicePolicy.NonCritical);
 
-builder.Services.AddGrpcClient<Health.HealthClient>("cicd-api", options => options.Address = new Uri("https://cicd-api"));
-builder.Services.AddGrpcClient<Health.HealthClient>("registry-api", options => options.Address = new Uri("https://registry-api"));
-builder.Services.AddGrpcClient<Health.HealthClient>("telemetry-api", options => options.Address = new Uri("https://telemetry-api"));
+builder.Services.AddGrpcClient<Health.HealthClient>(
+    "cicd-api",
+    options => options.Address = new Uri("https://cicd-api")
+);
+builder.Services.AddGrpcClient<Health.HealthClient>(
+    "registry-api",
+    options => options.Address = new Uri("https://registry-api")
+);
+builder.Services.AddGrpcClient<Health.HealthClient>(
+    "telemetry-api",
+    options => options.Address = new Uri("https://telemetry-api")
+);
 
 builder.AddRedisDistributedCache(
     "redis",

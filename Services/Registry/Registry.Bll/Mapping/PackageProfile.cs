@@ -16,11 +16,15 @@ public sealed class PackageProfile : Profile
         CreateMap<PackageVersion, PackageVersionDto>()
             .ForCtorParam(
                 nameof(PackageVersionDto.LicenseExpression),
-                options => options.MapFrom(version => version.Manifest == null ? null : version.Manifest.LicenseExpression)
+                options => options.MapFrom(version =>
+                    version.Manifest == null ? null : version.Manifest.LicenseExpression
+                )
             )
             .ForCtorParam(
                 nameof(PackageVersionDto.TargetFramework),
-                options => options.MapFrom(version => version.Manifest == null ? null : version.Manifest.TargetFramework)
+                options => options.MapFrom(version =>
+                    version.Manifest == null ? null : version.Manifest.TargetFramework
+                )
             );
 
         CreateMap<PackageTag, PackageTagDto>();

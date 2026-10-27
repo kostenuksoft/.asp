@@ -4,7 +4,11 @@ using Registry.Bll.Services.Interfaces;
 
 namespace Registry.Bll.Caching;
 
-public sealed class CachedPackageService(PackageService inner, TwoLevelCache cache) : IPackageService
+public sealed class CachedPackageService(
+    PackageService inner,
+    TwoLevelCache cache
+)
+    : IPackageService
 {
     public Task<PagedResult<PackageDto>> GetListAsync(
         PackageQuery query,

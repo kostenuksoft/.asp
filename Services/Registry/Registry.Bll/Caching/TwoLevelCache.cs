@@ -113,7 +113,11 @@ public sealed class TwoLevelCache(
         }
         catch (Exception exception) when (IsRedisFailure(exception))
         {
-            logger.LogWarning(exception, "Redis unavailable, version {CacheKey} unknown, lists read from the database", key);
+            logger.LogWarning(
+                exception,
+                "Redis unavailable, version {CacheKey} unknown, lists read from the database",
+                key
+            );
             return null;
         }
     }

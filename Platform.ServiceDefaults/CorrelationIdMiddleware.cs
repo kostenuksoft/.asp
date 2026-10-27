@@ -5,7 +5,10 @@ using Serilog.Context;
 
 namespace Platform.ServiceDefaults;
 
-public sealed class CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
+public sealed class CorrelationIdMiddleware(
+    RequestDelegate next,
+    ILogger<CorrelationIdMiddleware> logger
+)
 {
     public const string HeaderName = "X-Correlation-Id";
 
@@ -18,7 +21,12 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next, ILogger<Correl
         {
             correlationId = Guid.NewGuid().ToString();
             context.Request.Headers[HeaderName] = correlationId;
-            logger.LogInformation("Generated correlation id {CorrelationId} for {Method} {Path}", correlationId, context.Request.Method, context.Request.Path);
+            logger.LogInformation(
+                "Generated correlation id {CorrelationId} for {Method} {Path}",
+                correlationId,
+                context.Request.Method,
+                context.Request.Path
+            );
         }
 
         context.Response.OnStarting(() =>

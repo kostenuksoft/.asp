@@ -6,7 +6,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public abstract class RepositoryBase(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public abstract class RepositoryBase(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
 {
     public const int CommandTimeoutSeconds = 30;
 

@@ -20,7 +20,11 @@ public sealed class OutboxDispatcher(
             await EventBusTopology.DeclareExchangeAsync(channel, RegistryEvents.Exchange, stoppingToken);
         }
 
-        logger.LogInformation("Outbox dispatcher started: every {Interval}, rows older than {GracePeriod}", s_interval, s_gracePeriod);
+        logger.LogInformation(
+            "Outbox dispatcher started: every {Interval}, rows older than {GracePeriod}",
+            s_interval,
+            s_gracePeriod
+        );
 
         using PeriodicTimer timer = new(s_interval);
         while (await timer.WaitForNextTickAsync(stoppingToken))
@@ -28,7 +32,8 @@ public sealed class OutboxDispatcher(
             try
             {
                 await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
-                RegistryIntegrationEventService events = scope.ServiceProvider.GetRequiredService<RegistryIntegrationEventService>();
+                RegistryIntegrationEventService events =
+                    scope.ServiceProvider.GetRequiredService<RegistryIntegrationEventService>();
                 int published = await events.PublishUnpublishedAsync(DateTime.UtcNow - s_gracePeriod, stoppingToken);
                 if (published > 0)
                 {

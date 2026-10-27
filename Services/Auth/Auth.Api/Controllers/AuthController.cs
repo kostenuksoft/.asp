@@ -78,10 +78,17 @@ public sealed class AuthController(
             return Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid user name or password");
         }
 
-        Microsoft.AspNetCore.Identity.SignInResult result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+        Microsoft.AspNetCore.Identity.SignInResult result = await signInManager.CheckPasswordSignInAsync(
+            user,
+            request.Password,
+            lockoutOnFailure: true
+        );
         if (result.IsLockedOut)
         {
-            return Problem(statusCode: StatusCodes.Status423Locked, title: "Account is locked after repeated failed logins");
+            return Problem(
+                statusCode: StatusCodes.Status423Locked,
+                title: "Account is locked after repeated failed logins"
+            );
         }
 
         if (result.IsNotAllowed)
@@ -106,11 +113,16 @@ public sealed class AuthController(
     public async Task<ActionResult<AuthResponse>> RefreshToken(CancellationToken cancellationToken)
     {
         string? token = RefreshTokenCookie.Read(Request);
-        RefreshTokenRotation? rotation = token is null ? null : await refreshTokens.RotateAsync(token, cancellationToken);
+        RefreshTokenRotation? rotation = token is null
+            ? null
+            : await refreshTokens.RotateAsync(token, cancellationToken);
         if (rotation is null || await userManager.IsLockedOutAsync(rotation.User))
         {
             RefreshTokenCookie.Delete(Response);
-            return Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Refresh token is invalid, expired or revoked");
+            return Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Refresh token is invalid, expired or revoked"
+            );
         }
 
         return Ok(await IssueSessionAsync(rotation.User, rotation.NewToken));
@@ -131,7 +143,10 @@ public sealed class AuthController(
         string? token = string.IsNullOrWhiteSpace(request?.Token) ? cookieToken : request.Token;
         if (token is null)
         {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "No refresh token in the body or the cookie");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "No refresh token in the body or the cookie"
+            );
         }
 
         RefreshToken? refreshToken = await refreshTokens.FindActiveAsync(token, cancellationToken);
@@ -151,7 +166,11 @@ public sealed class AuthController(
             RefreshTokenCookie.Delete(Response);
         }
 
-        logger.LogInformation("Refresh token of user {UserId} revoked by {ActorId}", refreshToken.UserId, CurrentUserId);
+        logger.LogInformation(
+            "Refresh token of user {UserId} revoked by {ActorId}",
+            refreshToken.UserId,
+            CurrentUserId
+        );
         return NoContent();
     }
 
@@ -161,7 +180,9 @@ public sealed class AuthController(
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         string? token = RefreshTokenCookie.Read(Request);
-        RefreshToken? refreshToken = token is null ? null : await refreshTokens.FindActiveAsync(token, cancellationToken);
+        RefreshToken? refreshToken = token is null
+            ? null
+            : await refreshTokens.FindActiveAsync(token, cancellationToken);
         if (refreshToken is not null && refreshToken.UserId == CurrentUserId)
         {
             await refreshTokens.RevokeAsync(refreshToken, "logout", cancellationToken);
@@ -284,7 +305,11 @@ public sealed class AuthController(
             return Problem(statusCode: StatusCodes.Status401Unauthorized, title: "The account no longer exists");
         }
 
-        IdentityResult changed = await userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        IdentityResult changed = await userManager.ChangePasswordAsync(
+            user,
+            request.CurrentPassword,
+            request.NewPassword
+        );
         if (!changed.Succeeded)
         {
             return ValidationProblem(new ValidationProblemDetails(changed.ToValidationErrors()));

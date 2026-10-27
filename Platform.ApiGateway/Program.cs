@@ -31,7 +31,8 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
         options =>
         {
             options.MapInboundClaims = false;
-            options.TokenValidationParameters.ValidAudiences = ["cicd-api", "registry-api", "telemetry-api", "secrets-api"];
+            options.TokenValidationParameters.ValidAudiences =
+                ["cicd-api", "registry-api", "telemetry-api", "secrets-api"];
             if (builder.Environment.IsDevelopment())
             {
                 options.RequireHttpsMetadata = false;

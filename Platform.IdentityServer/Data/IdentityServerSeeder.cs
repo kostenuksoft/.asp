@@ -30,7 +30,9 @@ public static class IdentityServerSeeder
         IConfiguration configuration
     )
     {
-        IdentityServerClientSettings settings = configuration.GetSection(IdentityServerClientSettings.SectionName).Get<IdentityServerClientSettings>()
+        IdentityServerClientSettings settings = configuration
+            .GetSection(IdentityServerClientSettings.SectionName)
+            .Get<IdentityServerClientSettings>()
             ?? throw new InvalidOperationException($"Section '{IdentityServerClientSettings.SectionName}' is missing.");
 
         foreach (Duende.IdentityServer.Models.IdentityResource resource in Config.IdentityResources)
@@ -76,7 +78,9 @@ public static class IdentityServerSeeder
         string? userName = configuration["IdentityServer:SeedUser:UserName"];
         string? email = configuration["IdentityServer:SeedUser:Email"];
         string? password = configuration["IdentityServer:SeedUser:Password"];
-        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(userName)
+            || string.IsNullOrWhiteSpace(email)
+            || string.IsNullOrWhiteSpace(password))
         {
             return;
         }
@@ -97,9 +101,8 @@ public static class IdentityServerSeeder
         IdentityResult created = await userManager.CreateAsync(user, password);
         if (!created.Succeeded)
         {
-            throw new InvalidOperationException(
-                $"Seeding the IdentityServer user failed: {string.Join("; ", created.Errors.Select(error => error.Description))}"
-            );
+            string errors = string.Join("; ", created.Errors.Select(error => error.Description));
+            throw new InvalidOperationException($"Seeding the IdentityServer user failed: {errors}");
         }
     }
 }

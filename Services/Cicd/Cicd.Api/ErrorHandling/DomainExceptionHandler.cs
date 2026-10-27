@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Cicd.Api.ErrorHandling;
 
-public sealed class DomainExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<DomainExceptionHandler> logger)
+public sealed class DomainExceptionHandler(
+    IProblemDetailsService problemDetailsService,
+    ILogger<DomainExceptionHandler> logger
+)
     : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
@@ -26,7 +29,12 @@ public sealed class DomainExceptionHandler(IProblemDetailsService problemDetails
 
         if (status == StatusCodes.Status500InternalServerError)
         {
-            logger.LogError(exception, "Unhandled exception for {Method} {Path}", httpContext.Request.Method, httpContext.Request.Path);
+            logger.LogError(
+                exception,
+                "Unhandled exception for {Method} {Path}",
+                httpContext.Request.Method,
+                httpContext.Request.Path
+            );
         }
 
         httpContext.Response.StatusCode = status;

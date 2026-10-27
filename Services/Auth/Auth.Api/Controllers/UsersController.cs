@@ -92,7 +92,10 @@ public sealed class UsersController(
     {
         if (id == CurrentUserId)
         {
-            return Problem(statusCode: StatusCodes.Status409Conflict, title: "An administrator cannot delete their own account");
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "An administrator cannot delete their own account"
+            );
         }
 
         ApplicationUser? user = await userManager.FindByIdAsync(id);
@@ -126,7 +129,13 @@ public sealed class UsersController(
 
         IReadOnlyList<RefreshToken> history = await refreshTokens.GetHistoryAsync(id, cancellationToken);
         return Ok(history
-            .Select(token => new RefreshTokenDto(token.CreatedAt, token.ExpiresAt, token.RevokedAt, token.RevokedReason, token.IsActive))
+            .Select(token => new RefreshTokenDto(
+                token.CreatedAt,
+                token.ExpiresAt,
+                token.RevokedAt,
+                token.RevokedReason,
+                token.IsActive
+            ))
             .ToList());
     }
 

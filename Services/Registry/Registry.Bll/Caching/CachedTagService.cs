@@ -4,7 +4,11 @@ using Registry.Bll.Services.Interfaces;
 
 namespace Registry.Bll.Caching;
 
-public sealed class CachedTagService(TagService inner, TwoLevelCache cache) : ITagService
+public sealed class CachedTagService(
+    TagService inner,
+    TwoLevelCache cache
+)
+    : ITagService
 {
     public Task<IReadOnlyList<TagDto>> GetAllAsync(CancellationToken cancellationToken) => cache.GetOrCreateAsync(
         CacheKeys.Tags,
