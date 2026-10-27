@@ -100,7 +100,7 @@ public sealed class Discussion : BaseEntity
     )
     {
         ArgumentNullException.ThrowIfNull(labels);
-        EnsureNotClosed();
+        ThrowIfClosed();
 
         if (labels.Count > MaxLabels || !labels.All(IsLabel))
         {
@@ -118,7 +118,7 @@ public sealed class Discussion : BaseEntity
         string body
     )
     {
-        EnsureNotClosed();
+        ThrowIfClosed();
 
         if (_comments.Count >= MaxComments)
         {
@@ -154,7 +154,7 @@ public sealed class Discussion : BaseEntity
         Touch();
     }
 
-    private void EnsureNotClosed()
+    private void ThrowIfClosed()
     {
         if (State == DiscussionState.Closed)
         {
