@@ -235,7 +235,7 @@ DevHub – внутрішня платформа розробників одні
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/schema.sql
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/procedures.sql
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/seed.sql
-sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/security.sql -v CicdAppPassword="Repetovskyi#Cicd26"
+sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/security.sql -v CicdAppPassword="<пароль входу devhub_cicd_app>"
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/verify.sql
 ```
 
@@ -274,7 +274,7 @@ EXEC cicd.usp_GetRunTimeline @BuildRunId = @RunId;
 ```bash
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/schema.sql
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/seed.sql
-sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/security.sql -v RegistryAppPassword="Kostenuk#Registry26"
+sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/security.sql -v RegistryAppPassword="<пароль входу devhub_registry_app>"
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/verify.sql
 ```
 
@@ -752,10 +752,10 @@ flowchart LR
 1. Запустіть Docker Desktop.
 2. Один раз зробіть довіреним сертифікат розробника: `dotnet dev-certs https --trust`.
 3. Збережіть пароль SQL Server у user secrets AppHost. Пароль – параметр-секрет `sql-password`, у коді
-   його немає. Нижче локальний навчальний пароль:
+   його немає, а значення в репозиторії не зберігається:
 
    ```bash
-   dotnet user-secrets set "Parameters:sql-password" "Repetovskyi#Sql26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:sql-password" "<пароль SQL Server>" --project Platform.AppHost
    ```
 
 4. За потреби збережіть ключі ліцензій AutoMapper і Lucky Penny (розділи сервісів вище). Секрети
@@ -807,7 +807,7 @@ flowchart LR
 ```bash
 GW=http://localhost:5000
 TOKEN=$(curl -s -X POST $GW/auth/login -H "Content-Type: application/json" \
-  -d '{"userName":"kostenuk.admin","password":"Kostenuk#Admin26"}' | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
+  -d '{"userName":"kostenuk.admin","password":"<пароль kostenuk.admin>"}' | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
 AUTH="Authorization: Bearer $TOKEN"
 
 curl -i -H "$AUTH" $GW/api/pipelines
@@ -1330,16 +1330,16 @@ flowchart LR
 
 ### Секрети й запуск
 
-1. Збережіть секрети AppHost. Значення нижче – локальні навчальні:
+1. Збережіть секрети AppHost, підставивши власні значення замість описів у кутових дужках:
 
    ```bash
-   dotnet user-secrets set "Parameters:identity-sql-password" "Kostenuk#Identity26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:jwt-secret" "kostenuk-devhub-auth-signing-key-2026" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:auth-admin-password" "Kostenuk#Admin26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:postman-client-secret" "kostenuk-postman-client-26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:aggregator-client-secret" "kostenuk-aggregator-client-26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:identityserver-user-password" "Kostenuk#Idsrv26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:keycloak-admin-password" "Kostenuk#Keycloak26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:identity-sql-password" "<пароль identity-sql>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:jwt-secret" "<ключ підпису JWT, від 32 символів>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:auth-admin-password" "<пароль kostenuk.admin>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:postman-client-secret" "<секрет клієнта postman>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:aggregator-client-secret" "<секрет клієнта aggregator>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:identityserver-user-password" "<пароль користувача IdentityServer>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:keycloak-admin-password" "<пароль адміністратора Keycloak>" --project Platform.AppHost
    ```
 
 2. Запустіть `dotnet run --project Platform.AppHost`. Перший старт завантажує образ Keycloak, а `auth-api` і
@@ -1348,11 +1348,11 @@ flowchart LR
 
    ```bash
    cd infra/keycloak
-   export PULUMI_CONFIG_PASSPHRASE="kostenuk-pulumi-stack-26"
+   export PULUMI_CONFIG_PASSPHRASE="<парольна фраза стеку>"
    pulumi login --local
    pulumi stack init dev
-   pulumi config set --secret adminPassword "Kostenuk#Keycloak26"
-   pulumi config set --secret testUserPassword "Kostenuk#Temp26"
+   pulumi config set --secret adminPassword "<пароль адміністратора Keycloak>"
+   pulumi config set --secret testUserPassword "<тимчасовий пароль тестових користувачів>"
    pulumi preview
    pulumi up
    pulumi stack output
@@ -1360,7 +1360,8 @@ flowchart LR
    ```
 
 4. Імпортуйте в Postman колекцію `docs/postman/devhub-identity.postman_collection.json` і заповніть змінні
-   `postmanSecret`, `aggregatorSecret` і `keycloakPostmanSecret`.
+   `password`, `newPassword`, `adminPassword`, `postmanSecret`, `aggregatorSecret`, `keycloakPostmanSecret`
+   і `rotatedSecretValue` (від 16 символів).
 
 `pulumi preview` показує 82 ресурси: realm, клієнтів, ролі, політики, дозволи й чотирьох користувачів. Файл
 стека `Pulumi.dev.yaml` з зашифрованими паролями лишається на машині й до репозиторію не потрапляє.
