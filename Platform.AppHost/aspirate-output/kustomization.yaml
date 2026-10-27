@@ -1,0 +1,23 @@
+namespace: devhub
+
+resources:
+- sql
+- mongo
+- redis
+- messaging
+- identity-sql
+- auth-api
+- identityserver
+- keycloak
+- cicd-api
+- registry-api
+- telemetry-api
+- secrets-api
+- aggregator
+- gateway
+- namespace.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+

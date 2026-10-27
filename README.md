@@ -145,6 +145,17 @@ DevHub – внутрішня платформа розробників одні
 
 </details>
 
+<details>
+<summary>14. <a href="#розгортання-в-kubernetes">Розгортання в Kubernetes</a></summary>
+
+14.1. [Кластер](#кластер)\
+14.2. [Aspir8 (aspirate)](#aspir8-aspirate)\
+14.3. [Секрети поза репозиторієм](#секрети-поза-репозиторієм)\
+14.4. [Ручне розгортання](#ручне-розгортання)\
+14.5. [Знімки екрана](#знімки-екрана-2)
+
+</details>
+
 ## Політики стійкості клієнтів Aggregator
 
 Агрегатор викликає три сервіси через gRPC, і кожен клієнт має власну політику. Критичні сервіси –
@@ -224,7 +235,7 @@ DevHub – внутрішня платформа розробників одні
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/schema.sql
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/procedures.sql
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/seed.sql
-sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/security.sql -v CicdAppPassword="Repetovskyi#Cicd26"
+sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/security.sql -v CicdAppPassword="<пароль входу devhub_cicd_app>"
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p1/verify.sql
 ```
 
@@ -263,7 +274,7 @@ EXEC cicd.usp_GetRunTimeline @BuildRunId = @RunId;
 ```bash
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/schema.sql
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/seed.sql
-sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/security.sql -v RegistryAppPassword="Kostenuk#Registry26"
+sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/security.sql -v RegistryAppPassword="<пароль входу devhub_registry_app>"
 sqlcmd -S "(localdb)\MSSQLLocalDB" -b -i db/p2/verify.sql
 ```
 
@@ -741,10 +752,10 @@ flowchart LR
 1. Запустіть Docker Desktop.
 2. Один раз зробіть довіреним сертифікат розробника: `dotnet dev-certs https --trust`.
 3. Збережіть пароль SQL Server у user secrets AppHost. Пароль – параметр-секрет `sql-password`, у коді
-   його немає. Нижче локальний навчальний пароль:
+   його немає, а значення в репозиторії не зберігається:
 
    ```bash
-   dotnet user-secrets set "Parameters:sql-password" "Repetovskyi#Sql26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:sql-password" "<пароль SQL Server>" --project Platform.AppHost
    ```
 
 4. За потреби збережіть ключі ліцензій AutoMapper і Lucky Penny (розділи сервісів вище). Секрети
@@ -796,7 +807,7 @@ flowchart LR
 ```bash
 GW=http://localhost:5000
 TOKEN=$(curl -s -X POST $GW/auth/login -H "Content-Type: application/json" \
-  -d '{"userName":"kostenuk.admin","password":"Kostenuk#Admin26"}' | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
+  -d '{"userName":"kostenuk.admin","password":"<пароль kostenuk.admin>"}' | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
 AUTH="Authorization: Bearer $TOKEN"
 
 curl -i -H "$AUTH" $GW/api/pipelines
@@ -1319,16 +1330,16 @@ flowchart LR
 
 ### Секрети й запуск
 
-1. Збережіть секрети AppHost. Значення нижче – локальні навчальні:
+1. Збережіть секрети AppHost, підставивши власні значення замість описів у кутових дужках:
 
    ```bash
-   dotnet user-secrets set "Parameters:identity-sql-password" "Kostenuk#Identity26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:jwt-secret" "kostenuk-devhub-auth-signing-key-2026" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:auth-admin-password" "Kostenuk#Admin26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:postman-client-secret" "kostenuk-postman-client-26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:aggregator-client-secret" "kostenuk-aggregator-client-26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:identityserver-user-password" "Kostenuk#Idsrv26" --project Platform.AppHost
-   dotnet user-secrets set "Parameters:keycloak-admin-password" "Kostenuk#Keycloak26" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:identity-sql-password" "<пароль identity-sql>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:jwt-secret" "<ключ підпису JWT, від 32 символів>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:auth-admin-password" "<пароль kostenuk.admin>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:postman-client-secret" "<секрет клієнта postman>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:aggregator-client-secret" "<секрет клієнта aggregator>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:identityserver-user-password" "<пароль користувача IdentityServer>" --project Platform.AppHost
+   dotnet user-secrets set "Parameters:keycloak-admin-password" "<пароль адміністратора Keycloak>" --project Platform.AppHost
    ```
 
 2. Запустіть `dotnet run --project Platform.AppHost`. Перший старт завантажує образ Keycloak, а `auth-api` і
@@ -1337,11 +1348,11 @@ flowchart LR
 
    ```bash
    cd infra/keycloak
-   export PULUMI_CONFIG_PASSPHRASE="kostenuk-pulumi-stack-26"
+   export PULUMI_CONFIG_PASSPHRASE="<парольна фраза стеку>"
    pulumi login --local
    pulumi stack init dev
-   pulumi config set --secret adminPassword "Kostenuk#Keycloak26"
-   pulumi config set --secret testUserPassword "Kostenuk#Temp26"
+   pulumi config set --secret adminPassword "<пароль адміністратора Keycloak>"
+   pulumi config set --secret testUserPassword "<тимчасовий пароль тестових користувачів>"
    pulumi preview
    pulumi up
    pulumi stack output
@@ -1349,7 +1360,8 @@ flowchart LR
    ```
 
 4. Імпортуйте в Postman колекцію `docs/postman/devhub-identity.postman_collection.json` і заповніть змінні
-   `postmanSecret`, `aggregatorSecret` і `keycloakPostmanSecret`.
+   `password`, `newPassword`, `adminPassword`, `postmanSecret`, `aggregatorSecret`, `keycloakPostmanSecret`
+   і `rotatedSecretValue` (від 16 символів).
 
 `pulumi preview` показує 82 ресурси: realm, клієнтів, ролі, політики, дозволи й чотирьох користувачів. Файл
 стека `Pulumi.dev.yaml` з зашифрованими паролями лишається на машині й до репозиторію не потрапляє.
@@ -1557,3 +1569,124 @@ scope-дозволами за тією самою матрицею, тому з�
 користувачі `Auth.Api`; Authorization Code з PKCE і Client Credentials в IdentityServer; RPT і всі endpoint-и
 матриці з токеном Keycloak. Для матриці в авторизації папки Keycloak натисніть «Get New Access Token» і
 увійдіть потрібним користувачем. Під час першого входу Keycloak попросить замінити тимчасовий пароль.
+
+## Розгортання в Kubernetes
+
+Платформа розгортається в локальному кластері двома способами. Aspir8 (інструмент `aspirate`) генерує з AppHost
+маніфести всієї платформи в `Platform.AppHost/aspirate-output/`. `gateway` і `registry-api` мають ще й власні
+багатоетапні Dockerfile та маніфести в `deploy/k8s/`, а команди до них лежать у
+[deploy/k8s/README.md](deploy/k8s/README.md).
+
+### Кластер
+
+Кластер – профіль minikube `devhub` на драйвері Docker, тож кожна команда називає `--context devhub` або `-p devhub`.
+Реєстр minikube приймає образи, які збирає aspirate, а поди беруть їх з `localhost:5000`.
+
+```bash
+minikube start -p devhub --driver=docker --cpus=6 --memory=10g --keep-context
+minikube -p devhub addons enable registry
+kubectl --context devhub -n kube-system port-forward svc/registry 5000:80
+```
+
+### Aspir8 (aspirate)
+
+1. Встановити інструмент: `dotnet tool install -g aspirate --version 9.1.0`.
+
+2. У каталозі `Platform.AppHost` задати реєстр і тег, потім згенерувати маніфести:
+
+```bash
+aspirate init -cr localhost:5000 -ct v1
+aspirate generate --namespace devhub --image-pull-policy IfNotPresent --include-dashboard false
+```
+
+`generate` збирає образи восьми проєктів через `dotnet publish /t:PublishContainer`, надсилає їх у реєстр і створює
+Deployment, StatefulSet, Service, ConfigMap та Secret для сервісів, Gateway, Aggregator та інфраструктури: двох
+SQL Server, MongoDB, Redis, RabbitMQ і Keycloak.
+
+3. Створити файли `.<ресурс>.secrets` поруч із кожним `kustomization.yaml` (розділ «Секрети поза репозиторієм»)
+і застосувати маніфести:
+
+```bash
+kubectl --context devhub apply --server-side -k Platform.AppHost/aspirate-output
+kubectl --context devhub -n devhub get pods,services
+```
+
+`aspirate apply` тут не підходить. Версія 9.1.0 запускає `kubectl` з поточним контекстом і параметр `-k`
+ігнорує.
+
+4. Створити базу `DevHub_Cicd` тими самими скриптами `db/p1`, які Aspire виконує під час локального запуску.
+Пароль `sqlcmd` бере зі змінної `MSSQL_SA_PASSWORD` самого контейнера:
+
+```bash
+for f in schema procedures seed; do
+  kubectl --context devhub -n devhub exec -i sql-0 -- sh -c "cat > /tmp/$f.sql" < db/p1/$f.sql
+done
+kubectl --context devhub -n devhub exec sql-0 -- sh -c 'for f in schema procedures seed; do
+  /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -i /tmp/$f.sql; done'
+```
+
+5. Прокинути порт Gateway, увійти й запитати пакети:
+
+```bash
+kubectl --context devhub -n devhub port-forward service/gateway 8080:8080
+TOKEN=$(curl -s -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" \
+  -d "{\"userName\":\"kostenuk.admin\",\"password\":\"$AUTH_ADMIN_PASSWORD\"}" | jq -r .accessToken)
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/packages
+```
+
+AppHost має дві зміни, яких потребує кластер. У режимі публікації кожен проєкт отримує
+`ASPNETCORE_ENVIRONMENT=Staging`. Без цього поди працюють як Production, і Registry та Telemetry не
+завантажують початкових даних. Локальний запуск через Aspire лишається в Development. Keycloak у маніфесті
+стартує командою `start`, яка без сертифіката вимагає HTTP. Тому AppHost передає йому `KC_HTTP_ENABLED=true`
+і `KC_HOSTNAME_STRICT=false`.
+
+Aggregator викликає сервіси через gRPC за адресами `https://`, а в кластері TLS немає. aspirate прибирає
+адреси `https`, тож `/health/ready` агрегатора відповідає 503. Решта сервісів готові.
+
+### Секрети поза репозиторієм
+
+aspirate 9.1.0 вважає секретами лише рядки підключення та `MSSQL_SA_PASSWORD`. Ключ підпису JWT, пароль
+адміністратора Auth.Api, секрети клієнтів IdentityServer і паролі RabbitMQ, MongoDB, Redis та Keycloak він
+записує відкритим текстом у `configMapGenerator`, а значення всіх параметрів – у `aspirate-state.json`.
+
+У закоміченому `aspirate-output` ці ключі перенесено в `secretGenerator`. Кожен ресурс бере їх із файла
+`.<ресурс>.secrets` з рядками `КЛЮЧ=значення`, а його Deployment чи StatefulSet підключає Secret через `secretRef`.
+Файли `.secrets`, `aspirate-state.json` і проміжний `manifest.json` у репозиторій не потрапляють, їх відсікає
+`.gitignore`. Повторний `aspirate generate` повертає ці ключі в ConfigMap, тож після нього перенесення треба
+повторити.
+
+Secrets ручного розгортання створюють лише командою `kubectl create secret generic` зі значеннями зі змінних
+середовища ([повні команди](deploy/k8s/README.md#секрети-kubectl-create-secret)):
+
+```bash
+kubectl --context devhub create secret generic registry-secrets \
+  --from-literal=ConnectionStrings__RegistryDb="$REGISTRY_DB" \
+  --from-literal=ConnectionStrings__redis="$REGISTRY_REDIS" \
+  --from-literal=ConnectionStrings__messaging="$REGISTRY_MESSAGING" \
+  --from-literal=Jwt__SecretKey="$JWT_SECRET"
+kubectl --context devhub create secret generic gateway-secrets --from-literal=Jwt__SecretKey="$JWT_SECRET"
+```
+
+### Ручне розгортання
+
+`deploy/k8s/` містить Deployment і Service для `registry-api` та `gateway` і спільний `configmap.yaml`.
+Секретів у цих файлах немає. Кожен
+Deployment має дві репліки, `imagePullPolicy: IfNotPresent` і `containerPort: 8080`; liveness-проба звертається до
+`/health/live`, readiness-проба – до `/health/ready`, а змінні середовища приходять через `envFrom` з ConfigMap і
+Secret. Service типу ClusterIP знаходить поди за лейблом `app` і переводить порт 80 на 8080. ConfigMap
+`gateway-config` передає Gateway адресу `services__registry-api__http__0: "http://registry-api"`, тобто DNS-ім’я
+Service, тому код Gateway лишився тим самим.
+
+### Знімки екрана
+
+Поди й сервіси після розгортання маніфестами aspirate:
+
+![kubectl get pods,services після aspirate](docs/screenshots/k8s-aspirate-pods.png)
+
+Поди й сервіси після ручного розгортання:
+
+![kubectl get pods,services після ручного розгортання](docs/screenshots/k8s-manual-pods.png)
+
+Відповідь `/api/packages` через port-forward Gateway:
+
+![GET /api/packages через Gateway](docs/screenshots/k8s-gateway-packages.png)

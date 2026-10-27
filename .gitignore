@@ -429,3 +429,6 @@ FodyWeavers.xsd
 *.msp
 
 Pulumi.*.yaml
+Platform.AppHost/aspirate-output/**/.*.secrets
+Platform.AppHost/aspirate-state.json
+Platform.AppHost/manifest.json

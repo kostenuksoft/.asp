@@ -98,6 +98,8 @@ IResourceBuilder<ParameterResource> keycloakAdminPassword = builder.AddParameter
 
 IResourceBuilder<KeycloakResource> keycloak = builder
     .AddKeycloak("keycloak", 8080, adminPassword: keycloakAdminPassword)
+    .WithEnvironment("KC_HTTP_ENABLED", "true")
+    .WithEnvironment("KC_HOSTNAME_STRICT", "false")
     .WithDataVolume()
     .WithContainerName("devhub-keycloak")
     .WithContainerRuntimeArgs("--label", ContainerGroupLabel)
@@ -174,6 +176,16 @@ builder.AddProject<Projects.Platform_ApiGateway>("gateway")
     .WithReference(keycloak)
     .WaitFor(keycloak)
     .WithHttpHealthCheck("/health/ready");
+
+if (builder.ExecutionContext.IsPublishMode)
+{
+    foreach (ProjectResource project in builder.Resources.OfType<ProjectResource>())
+    {
+        builder
+            .CreateResourceBuilder(project)
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Staging");
+    }
+}
 
 builder
     .Build()

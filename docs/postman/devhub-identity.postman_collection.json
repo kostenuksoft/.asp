@@ -10,13 +10,14 @@
     { "key": "keycloakRealm", "value": "http://localhost:8080/realms/DevHub" },
     { "key": "userName", "value": "kostenuk" },
     { "key": "email", "value": "kostenuk@devhub.local" },
-    { "key": "password", "value": "Kostenuk#Dev26" },
-    { "key": "newPassword", "value": "Kostenuk#Change26" },
+    { "key": "password", "value": "" },
+    { "key": "newPassword", "value": "" },
     { "key": "adminUserName", "value": "kostenuk.admin" },
-    { "key": "adminPassword", "value": "Kostenuk#Admin26" },
+    { "key": "adminPassword", "value": "" },
     { "key": "postmanSecret", "value": "" },
     { "key": "aggregatorSecret", "value": "" },
     { "key": "keycloakPostmanSecret", "value": "" },
+    { "key": "rotatedSecretValue", "value": "" },
     { "key": "userId", "value": "" },
     { "key": "mailToken", "value": "" },
     { "key": "accessToken", "value": "" },
@@ -403,7 +404,7 @@
         { "name": "POST /api/packages/1/relist (registry:publish)", "request": { "method": "POST", "url": "{{gateway}}/api/packages/1/relist" } },
         { "name": "DELETE /api/packages/12 (registry:delete)", "request": { "method": "DELETE", "url": "{{gateway}}/api/packages/12" } },
         { "name": "GET /api/secrets (secrets:read)", "request": { "method": "GET", "url": "{{gateway}}/api/secrets" } },
-        { "name": "POST /api/secrets/rotate (secrets:rotate)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/secrets/rotate", "body": { "mode": "raw", "raw": "{\n  \"name\": \"deploy-ssh-key\",\n  \"newValue\": \"kostenuk-deploy-key-rotated-26\"\n}" } } },
+        { "name": "POST /api/secrets/rotate (secrets:rotate)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/secrets/rotate", "body": { "mode": "raw", "raw": "{\n  \"name\": \"deploy-ssh-key\",\n  \"newValue\": \"{{rotatedSecretValue}}\"\n}" } } },
         { "name": "POST /api/secrets/revoke (secrets:revoke)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{gateway}}/api/secrets/revoke", "body": { "mode": "raw", "raw": "{\n  \"name\": \"deploy-ssh-key\"\n}" } } }
       ]
     }
