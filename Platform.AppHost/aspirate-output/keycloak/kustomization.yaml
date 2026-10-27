@@ -1,0 +1,20 @@
+resources:
+- statefulset.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: keycloak-env
+  literals:
+    - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+    - KC_HEALTH_ENABLED=true
+    - KC_HTTP_ENABLED=true
+    - KC_HOSTNAME_STRICT=false
+
+secretGenerator:
+- name: keycloak-secrets
+  envs:
+  - .keycloak.secrets
+
