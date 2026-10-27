@@ -23,22 +23,3 @@ public sealed record RunTimelineDto(
     IReadOnlyList<RunStatusChangeDto> History,
     IReadOnlyList<RunArtifactDto> Artifacts
 );
-
-public sealed record RunStatusChangeDto(
-    string? FromStatus,
-    string ToStatus,
-    string? Reason,
-    DateTime CreatedAt,
-    string CreatedBy
-);
-
-public sealed record RunArtifactDto(
-    string UsageKind,
-    long ArtifactId,
-    long PackageId,
-    string PackageKey,
-    string PackageName,
-    string SemVer,
-    long SizeBytes,
-    string StorageUri
-);

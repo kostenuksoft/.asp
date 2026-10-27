@@ -13,20 +13,3 @@ public sealed record PackageDetailsDto(
     IReadOnlyList<PackageVersionDto> Versions,
     IReadOnlyList<PackageTagDto> Tags
 );
-
-public sealed record PackageVersionDto(
-    long PackageVersionId,
-    string SemVer,
-    long SizeBytes,
-    string Sha256,
-    bool IsDeprecated,
-    DateTime PublishedAt,
-    string? LicenseExpression,
-    string? TargetFramework
-);
-
-public sealed record PackageTagDto(
-    long TagId,
-    string TagName,
-    DateTime AssignedAt
-);

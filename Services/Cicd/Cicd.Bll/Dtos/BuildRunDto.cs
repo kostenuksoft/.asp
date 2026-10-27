@@ -14,22 +14,3 @@ public sealed record BuildRunDto(
     BuildRunDetailDto? Detail,
     IReadOnlyList<BuildStepDto> Steps
 );
-
-public sealed record BuildRunDetailDto(
-    string CommitSha,
-    string CommitMessage,
-    string BranchName,
-    string TriggeredBy,
-    string TriggerKind,
-    string? TriggerPayload
-);
-
-public sealed record BuildStepDto(
-    long BuildStepId,
-    int StepOrder,
-    string Name,
-    string Status,
-    DateTime? StartedAt,
-    DateTime? FinishedAt,
-    int? ExitCode
-);
