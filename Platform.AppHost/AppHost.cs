@@ -65,13 +65,23 @@ IResourceBuilder<ProjectResource> auth = builder.AddProject<Projects.Auth_Api>("
     .WithEnvironment("Auth__AdminPassword", authAdminPassword)
     .WithHttpHealthCheck("/health/ready");
 
-IResourceBuilder<SqlServerDatabaseResource> identityServerDb = identitySql.AddDatabase("IdentityServerDb", "DevHub_IdentityServer");
+IResourceBuilder<SqlServerDatabaseResource> identityServerDb = identitySql.AddDatabase(
+    "IdentityServerDb",
+    "DevHub_IdentityServer"
+);
 
 IResourceBuilder<ParameterResource> postmanClientSecret = builder.AddParameter("postman-client-secret", secret: true);
-IResourceBuilder<ParameterResource> aggregatorClientSecret = builder.AddParameter("aggregator-client-secret", secret: true);
-IResourceBuilder<ParameterResource> identityServerUserPassword = builder.AddParameter("identityserver-user-password", secret: true);
+IResourceBuilder<ParameterResource> aggregatorClientSecret = builder.AddParameter(
+    "aggregator-client-secret",
+    secret: true
+);
+IResourceBuilder<ParameterResource> identityServerUserPassword = builder.AddParameter(
+    "identityserver-user-password",
+    secret: true
+);
 
-IResourceBuilder<ProjectResource> identityServer = builder.AddProject<Projects.Platform_IdentityServer>("identityserver")
+IResourceBuilder<ProjectResource> identityServer = builder
+    .AddProject<Projects.Platform_IdentityServer>("identityserver")
     .WithReference(identityServerDb)
     .WaitFor(identityServerDb)
     .WithEnvironment("IdentityServer__Clients__PostmanSecret", postmanClientSecret)
@@ -81,9 +91,13 @@ IResourceBuilder<ProjectResource> identityServer = builder.AddProject<Projects.P
 
 EndpointReference identityServerEndpoint = identityServer.GetEndpoint("https");
 
-IResourceBuilder<ParameterResource> keycloakAdminPassword = builder.AddParameter("keycloak-admin-password", secret: true);
+IResourceBuilder<ParameterResource> keycloakAdminPassword = builder.AddParameter(
+    "keycloak-admin-password",
+    secret: true
+);
 
-IResourceBuilder<KeycloakResource> keycloak = builder.AddKeycloak("keycloak", 8080, adminPassword: keycloakAdminPassword)
+IResourceBuilder<KeycloakResource> keycloak = builder
+    .AddKeycloak("keycloak", 8080, adminPassword: keycloakAdminPassword)
     .WithDataVolume()
     .WithContainerName("devhub-keycloak")
     .WithContainerRuntimeArgs("--label", ContainerGroupLabel)

@@ -170,7 +170,8 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        [new OpenApiSecuritySchemeReference(PlatformAuthentication.IdentityServerScheme, document)] = [Permissions.ReadScope, Permissions.WriteScope],
+        [new OpenApiSecuritySchemeReference(PlatformAuthentication.IdentityServerScheme, document)] =
+            [Permissions.ReadScope, Permissions.WriteScope],
     });
 });
 

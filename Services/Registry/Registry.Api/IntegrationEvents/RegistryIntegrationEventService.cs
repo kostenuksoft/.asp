@@ -26,7 +26,13 @@ public sealed class RegistryIntegrationEventService(
         ArgumentNullException.ThrowIfNull(package);
 
         Stage(
-            new PackageCreatedEvent(package.PackageId, package.Publisher.Slug, package.Name, KeyOf(package), package.LicensePrice),
+            new PackageCreatedEvent(
+                package.PackageId,
+                package.Publisher.Slug,
+                package.Name,
+                KeyOf(package),
+                package.LicensePrice
+            ),
             RegistryEvents.PackageCreated
         );
     }
@@ -77,7 +83,13 @@ public sealed class RegistryIntegrationEventService(
         ArgumentNullException.ThrowIfNull(package);
 
         Stage(
-            new PackageDeletedEvent(package.PackageId, package.Publisher.Slug, package.Name, KeyOf(package), package.LicensePrice),
+            new PackageDeletedEvent(
+                package.PackageId,
+                package.Publisher.Slug,
+                package.Name,
+                KeyOf(package),
+                package.LicensePrice
+            ),
             RegistryEvents.PackageDeleted
         );
     }
@@ -102,7 +114,11 @@ public sealed class RegistryIntegrationEventService(
         IReadOnlyList<OutboxMessage> unpublished;
         using (SuppressInstrumentationScope.Begin())
         {
-            unpublished = await unitOfWork.Outbox.GetUnpublishedAsync(occurredBefore, DispatchBatchSize, cancellationToken);
+            unpublished = await unitOfWork.Outbox.GetUnpublishedAsync(
+                occurredBefore,
+                DispatchBatchSize,
+                cancellationToken
+            );
         }
 
         if (unpublished.Count > 0)
@@ -120,7 +136,9 @@ public sealed class RegistryIntegrationEventService(
         string routingKey
     )
     {
-        string? correlationId = httpContextAccessor.HttpContext?.Request.Headers[CorrelationIdMiddleware.HeaderName].ToString();
+        string? correlationId = httpContextAccessor.HttpContext?.Request
+            .Headers[CorrelationIdMiddleware.HeaderName]
+            .ToString();
         OutgoingMessage message = OutgoingMessage.Create(
             integrationEvent with { CorrelationId = string.IsNullOrEmpty(correlationId) ? null : correlationId },
             RegistryEvents.Exchange,

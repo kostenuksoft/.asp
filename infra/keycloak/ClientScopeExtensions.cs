@@ -5,7 +5,8 @@ namespace KeycloakRealm;
 
 public static class ClientScopeExtensions
 {
-    private static readonly string[] s_builtInDefaultScopes = ["profile", "email", "roles", "web-origins", "acr", "basic"];
+    private static readonly string[] s_builtInDefaultScopes =
+        ["profile", "email", "roles", "web-origins", "acr", "basic"];
 
     public static ClientScope WithAudiences(
         this ClientScope scope,

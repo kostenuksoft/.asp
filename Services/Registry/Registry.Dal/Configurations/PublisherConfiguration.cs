@@ -12,7 +12,10 @@ public sealed class PublisherConfiguration : IEntityTypeConfiguration<Publisher>
 
         builder.ToTable("Publisher", AuditConfiguration.Schema, table =>
         {
-            table.HasCheckConstraint("CK_Publisher_Slug_Format", "LEN([Slug]) >= 2 AND [Slug] NOT LIKE N'%[^a-z0-9-]%'");
+            table.HasCheckConstraint(
+                "CK_Publisher_Slug_Format",
+                "LEN([Slug]) >= 2 AND [Slug] NOT LIKE N'%[^a-z0-9-]%'"
+            );
             table.HasCheckConstraint("CK_Publisher_ContactEmail", "[ContactEmail] LIKE N'%_@_%._%'");
         });
 

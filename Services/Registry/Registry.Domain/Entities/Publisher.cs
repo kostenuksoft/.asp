@@ -18,7 +18,9 @@ public sealed class Publisher : AuditableEntity
     {
         if (string.IsNullOrWhiteSpace(slug) || slug.Length < 2 || !slug.All(IsSlugCharacter))
         {
-            throw new DomainException("Publisher slug must have at least 2 characters: lowercase letters, digits or hyphens.");
+            throw new DomainException(
+                "Publisher slug must have at least 2 characters: lowercase letters, digits or hyphens."
+            );
         }
 
         if (string.IsNullOrWhiteSpace(displayName))

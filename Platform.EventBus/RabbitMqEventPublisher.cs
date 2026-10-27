@@ -5,7 +5,11 @@ using RabbitMQ.Client;
 
 namespace Platform.EventBus;
 
-public sealed class RabbitMqEventPublisher(IConnection connection, ILogger<RabbitMqEventPublisher> logger) : IEventPublisher
+public sealed class RabbitMqEventPublisher(
+    IConnection connection,
+    ILogger<RabbitMqEventPublisher> logger
+)
+    : IEventPublisher
 {
     private static readonly CreateChannelOptions s_confirmedChannel = new(
         publisherConfirmationsEnabled: true,
@@ -27,7 +31,9 @@ public sealed class RabbitMqEventPublisher(IConnection connection, ILogger<Rabbi
             ContentType = "application/json",
             MessageId = message.EventId.ToString(),
             Type = message.EventType,
-            Timestamp = new AmqpTimestamp(new DateTimeOffset(message.OccurredAt.Ticks, TimeSpan.Zero).ToUnixTimeSeconds()),
+            Timestamp = new AmqpTimestamp(
+                new DateTimeOffset(message.OccurredAt.Ticks, TimeSpan.Zero).ToUnixTimeSeconds()
+            ),
             Headers = new Dictionary<string, object?>
             {
                 [EventBusHeaders.CorrelationId] = message.CorrelationId,

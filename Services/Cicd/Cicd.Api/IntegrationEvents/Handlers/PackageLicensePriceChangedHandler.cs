@@ -3,7 +3,10 @@ using Cicd.Dal.UnitOfWork;
 
 namespace Cicd.Api.IntegrationEvents.Handlers;
 
-public sealed class PackageLicensePriceChangedHandler(IUnitOfWork unitOfWork, ILogger<PackageLicensePriceChangedHandler> logger)
+public sealed class PackageLicensePriceChangedHandler(
+    IUnitOfWork unitOfWork,
+    ILogger<PackageLicensePriceChangedHandler> logger
+)
     : PackageCopyHandler<PackageLicensePriceChangedEvent>(unitOfWork, logger)
 {
     protected override Task OnAppliedAsync(

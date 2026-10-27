@@ -5,7 +5,11 @@ using Platform.EventBus;
 
 namespace Cicd.Api.IntegrationEvents.Handlers;
 
-public abstract class PackageCopyHandler<TEvent>(IUnitOfWork unitOfWork, ILogger logger) : IIntegrationEventHandler<TEvent>
+public abstract class PackageCopyHandler<TEvent>(
+    IUnitOfWork unitOfWork,
+    ILogger logger
+)
+    : IIntegrationEventHandler<TEvent>
     where TEvent : IntegrationEvent, IPackageSnapshot
 {
     protected const string RegistryEventsActor = "registry-events";

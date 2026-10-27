@@ -10,7 +10,11 @@ namespace Cicd.Api.Controllers;
 [ApiController]
 [Route("api/build-runs")]
 [Produces("application/json")]
-public sealed class BuildRunsController(IBuildRunService buildRuns, CicdMetrics metrics) : ControllerBase
+public sealed class BuildRunsController(
+    IBuildRunService buildRuns,
+    CicdMetrics metrics
+)
+    : ControllerBase
 {
     private const string QueueOperation = "queue";
     private const string CompleteOperation = "complete";

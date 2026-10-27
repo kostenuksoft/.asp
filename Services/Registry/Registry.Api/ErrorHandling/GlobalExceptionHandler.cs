@@ -30,7 +30,14 @@ public sealed class GlobalExceptionHandler(
         };
 
         LogLevel level = status == StatusCodes.Status500InternalServerError ? LogLevel.Error : LogLevel.Warning;
-        logger.Log(level, exception, "Request {Method} {Path} failed with {StatusCode}", httpContext.Request.Method, httpContext.Request.Path, status);
+        logger.Log(
+            level,
+            exception,
+            "Request {Method} {Path} failed with {StatusCode}",
+            httpContext.Request.Method,
+            httpContext.Request.Path,
+            status
+        );
 
         ProblemDetails problemDetails = new()
         {

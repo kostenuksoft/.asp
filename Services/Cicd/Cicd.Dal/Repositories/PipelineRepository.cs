@@ -5,7 +5,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class PipelineRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public sealed class PipelineRepository(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
     : BaseDapperRepository<Pipeline>(connection, currentTransaction, "cicd.Pipeline", "PipelineId"), IPipelineRepository
 {
     protected override string InsertSql =>

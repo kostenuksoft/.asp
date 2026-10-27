@@ -13,7 +13,10 @@ public sealed class PackageManifestConfiguration : IEntityTypeConfiguration<Pack
         builder.ToTable("PackageManifest", AuditConfiguration.Schema, table =>
         {
             table.HasCheckConstraint("CK_PackageManifest_TargetFramework", "[TargetFramework] LIKE N'net[0-9]%'");
-            table.HasCheckConstraint("CK_PackageManifest_EntryPoints_Json", "[EntryPoints] IS NULL OR ISJSON([EntryPoints]) = 1");
+            table.HasCheckConstraint(
+                "CK_PackageManifest_EntryPoints_Json",
+                "[EntryPoints] IS NULL OR ISJSON([EntryPoints]) = 1"
+            );
         });
 
         builder.HasKey(manifest => manifest.PackageVersionId).HasName("PK_PackageManifest");

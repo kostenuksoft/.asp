@@ -34,7 +34,10 @@ builder.Services.AddSingleton<CicdMetrics>();
 builder.AddRabbitMQClient("messaging", settings => settings.DisableTracing = true);
 builder.Services.AddScoped<IIntegrationEventHandler<PackageCreatedEvent>, PackageCreatedHandler>();
 builder.Services.AddScoped<IIntegrationEventHandler<PackageRenamedEvent>, PackageRenamedHandler>();
-builder.Services.AddScoped<IIntegrationEventHandler<PackageLicensePriceChangedEvent>, PackageLicensePriceChangedHandler>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PackageLicensePriceChangedEvent>,
+    PackageLicensePriceChangedHandler
+>();
 builder.Services.AddScoped<IIntegrationEventHandler<PackageDeletedEvent>, PackageDeletedHandler>();
 builder.Services.AddHostedService<RegistryEventsConsumer>();
 
@@ -136,7 +139,8 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        [new OpenApiSecuritySchemeReference(PlatformAuthentication.IdentityServerScheme, document)] = [Permissions.ReadScope, Permissions.WriteScope],
+        [new OpenApiSecuritySchemeReference(PlatformAuthentication.IdentityServerScheme, document)] =
+            [Permissions.ReadScope, Permissions.WriteScope],
     });
 });
 

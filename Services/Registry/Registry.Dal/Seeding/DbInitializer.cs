@@ -108,17 +108,40 @@ public static class DbInitializer
         long downloads,
         string targetFramework,
         long[] tagIds,
-        params (int Major, int Minor, int Patch, string? PreRelease, long SizeBytes, string Sha256, int DaysBeforeSeed)[] versions
+        params (
+            int Major,
+            int Minor,
+            int Patch,
+            string? PreRelease,
+            long SizeBytes,
+            string Sha256,
+            int DaysBeforeSeed
+        )[] versions
     )
     {
         Package package = new(publisherId, name, description, null, licensePrice);
         package.RegisterDownloads(downloads);
 
-        foreach ((int major, int minor, int patch, string? preRelease, long sizeBytes, string sha256, int daysBeforeSeed) in versions)
+        foreach ((
+            int major,
+            int minor,
+            int patch,
+            string? preRelease,
+            long sizeBytes,
+            string sha256,
+            int daysBeforeSeed
+        ) in versions)
         {
             DateTime publishedAt = AuditConfiguration.SeededAt.AddDays(-daysBeforeSeed);
-            PackageVersion version = package.PublishVersion(new PackageVersion(major, minor, patch, preRelease, sizeBytes, sha256, publishedAt));
-            version.AttachManifest(new PackageManifest("MIT", targetFramework, $"# {name} {version.SemVer}", $$"""{"lib":["lib/{{name}}.dll"]}"""));
+            PackageVersion version = package.PublishVersion(
+                new PackageVersion(major, minor, patch, preRelease, sizeBytes, sha256, publishedAt)
+            );
+            version.AttachManifest(new PackageManifest(
+                "MIT",
+                targetFramework,
+                $"# {name} {version.SemVer}",
+                $$"""{"lib":["lib/{{name}}.dll"]}"""
+            ));
         }
 
         foreach (long tagId in tagIds)

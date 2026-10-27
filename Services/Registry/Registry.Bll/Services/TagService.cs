@@ -7,7 +7,11 @@ using Registry.Domain.Exceptions;
 
 namespace Registry.Bll.Services;
 
-public sealed class TagService(IUnitOfWork unitOfWork, IMapper mapper) : ITagService
+public sealed class TagService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper
+)
+    : ITagService
 {
     public async Task<IReadOnlyList<TagDto>> GetAllAsync(CancellationToken cancellationToken)
     {
@@ -41,7 +45,11 @@ public sealed class TagService(IUnitOfWork unitOfWork, IMapper mapper) : ITagSer
             throw new EntityNotFoundException($"Tag '{tagName}' was not found.");
         }
 
-        IReadOnlyList<Package> packages = await unitOfWork.PackageTags.GetRecentlyTaggedAsync(tagName, since, cancellationToken);
+        IReadOnlyList<Package> packages = await unitOfWork.PackageTags.GetRecentlyTaggedAsync(
+            tagName,
+            since,
+            cancellationToken
+        );
         return mapper.Map<IReadOnlyList<PackageDto>>(packages);
     }
 }

@@ -16,13 +16,24 @@ public sealed class TelemetryMetrics
         ArgumentNullException.ThrowIfNull(meterFactory);
 
         Meter meter = meterFactory.Create(MeterName);
-        _discussionsCreated = meter.CreateCounter<long>("discussions.created", unit: "{discussion}", description: "Discussions opened for packages");
-        _operationDuration = meter.CreateHistogram<double>("discussions.operation.duration", unit: "ms", description: "Duration of discussion write operations");
+        _discussionsCreated = meter.CreateCounter<long>(
+            "discussions.created",
+            unit: "{discussion}",
+            description: "Discussions opened for packages"
+        );
+        _operationDuration = meter.CreateHistogram<double>(
+            "discussions.operation.duration",
+            unit: "ms",
+            description: "Duration of discussion write operations"
+        );
     }
 
     public void DiscussionCreated(DiscussionCategory category) => _discussionsCreated.Add(
         1,
-        new KeyValuePair<string, object?>("discussion.category", JsonNamingPolicy.CamelCase.ConvertName(category.ToString()))
+        new KeyValuePair<string, object?>(
+            "discussion.category",
+            JsonNamingPolicy.CamelCase.ConvertName(category.ToString())
+        )
     );
 
     public void RecordDuration(

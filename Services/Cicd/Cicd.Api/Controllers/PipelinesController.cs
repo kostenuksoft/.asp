@@ -8,7 +8,11 @@ namespace Cicd.Api.Controllers;
 [ApiController]
 [Route("api/pipelines")]
 [Produces("application/json")]
-public sealed class PipelinesController(IPipelineService pipelines, IBuildRunService buildRuns) : ControllerBase
+public sealed class PipelinesController(
+    IPipelineService pipelines,
+    IBuildRunService buildRuns
+)
+    : ControllerBase
 {
     [HttpGet]
     [RequirePermission(Permissions.Read)]

@@ -37,11 +37,17 @@ builder.Services.AddIdentityServer(options =>
     })
     .AddAspNetIdentity<ApplicationUser>()
     .AddConfigurationStore(options =>
-        options.ConfigureDbContext = context => context.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly))
+        options.ConfigureDbContext = context => context.UseSqlServer(
+            connectionString,
+            sql => sql.MigrationsAssembly(migrationsAssembly)
+        )
     )
     .AddOperationalStore(options =>
     {
-        options.ConfigureDbContext = context => context.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
+        options.ConfigureDbContext = context => context.UseSqlServer(
+            connectionString,
+            sql => sql.MigrationsAssembly(migrationsAssembly)
+        );
         options.EnableTokenCleanup = true;
     });
 

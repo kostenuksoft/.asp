@@ -19,7 +19,11 @@ namespace Telemetry.WebApi.Controllers;
 
 [Authorize]
 [Route("api/discussions")]
-public sealed class DiscussionsController(ISender sender, TelemetryMetrics metrics) : ApiController(sender)
+public sealed class DiscussionsController(
+    ISender sender,
+    TelemetryMetrics metrics
+)
+    : ApiController(sender)
 {
     private const string CreateOperation = "create";
 

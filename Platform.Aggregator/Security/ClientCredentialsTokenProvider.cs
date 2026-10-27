@@ -44,10 +44,15 @@ public sealed class ClientCredentialsTokenProvider(
             });
 
             HttpClient client = httpClientFactory.CreateClient(HttpClientName);
-            using HttpResponseMessage response = await client.PostAsync(new Uri($"{settings.Authority.TrimEnd('/')}/connect/token"), form, cancellationToken);
+            using HttpResponseMessage response = await client.PostAsync(
+                new Uri($"{settings.Authority.TrimEnd('/')}/connect/token"),
+                form,
+                cancellationToken
+            );
             response.EnsureSuccessStatusCode();
 
-            TokenEndpointResponse token = await response.Content.ReadFromJsonAsync<TokenEndpointResponse>(cancellationToken)
+            TokenEndpointResponse token = await response.Content
+                .ReadFromJsonAsync<TokenEndpointResponse>(cancellationToken)
                 ?? throw new InvalidOperationException("The token endpoint returned an empty body.");
 
             _accessToken = token.AccessToken;

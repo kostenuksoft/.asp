@@ -73,7 +73,10 @@ builder.Services.AddAuthentication(PlatformAuthentication.Scheme)
     );
 
 builder.Services.AddAuthorization(options =>
-    options.AddPolicy(TelemetryGrpcService.ReadScope, policy => policy.RequireClaim("scope", TelemetryGrpcService.ReadScope))
+    options.AddPolicy(
+        TelemetryGrpcService.ReadScope,
+        policy => policy.RequireClaim("scope", TelemetryGrpcService.ReadScope)
+    )
 );
 
 builder.Services.AddControllers().AddJsonOptions(options =>

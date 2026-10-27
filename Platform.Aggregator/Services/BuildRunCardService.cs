@@ -52,7 +52,11 @@ public sealed class BuildRunCardService(
 
         if (card.Warnings.Count > 0)
         {
-            logger.LogInformation("Card {CacheKey} not cached, partial answer with {WarningCount} warnings", key, card.Warnings.Count);
+            logger.LogInformation(
+                "Card {CacheKey} not cached, partial answer with {WarningCount} warnings",
+                key,
+                card.Warnings.Count
+            );
             return card;
         }
 
@@ -84,7 +88,8 @@ public sealed class BuildRunCardService(
         }
 
         List<string> warnings = [];
-        List<IGrouping<long, RunArtifact>> artifactsByPackage = [.. run.Artifacts.GroupBy(artifact => artifact.PackageId)];
+        List<IGrouping<long, RunArtifact>> artifactsByPackage =
+            [.. run.Artifacts.GroupBy(artifact => artifact.PackageId)];
         long[] packageIds = [.. artifactsByPackage.Select(group => group.Key)];
 
         Task<PackagesReply?> packagesTask = packageIds.Length == 0

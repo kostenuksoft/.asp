@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Auth.Api.Data;
 
-public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 

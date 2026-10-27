@@ -45,7 +45,9 @@ public static class ResilienceExtensions
         client.RemoveAllResilienceHandlers();
         client.AddStandardResilienceHandler().Configure((options, provider) =>
         {
-            ILogger logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Platform.Aggregator.Resilience");
+            ILogger logger = provider
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("Platform.Aggregator.Resilience");
 
             options.Retry.MaxRetryAttempts = policy.HttpRetryAttempts;
             options.Retry.Delay = policy.HttpRetryDelay;

@@ -28,7 +28,9 @@ public static class PlatformAuthentication
         string secretKey = Required(configuration, "Jwt:SecretKey");
         if (secretKey.Length < MinimumSecretLength)
         {
-            throw new InvalidOperationException($"Jwt:SecretKey must be at least {MinimumSecretLength} characters (256 bits for HS256).");
+            throw new InvalidOperationException(
+                $"Jwt:SecretKey must be at least {MinimumSecretLength} characters (256 bits for HS256)."
+            );
         }
 
         return new TokenValidationParameters
@@ -55,7 +57,8 @@ public static class PlatformAuthentication
                 return AuthServiceScheme;
             }
 
-            if (identityServerIssuer is not null && string.Equals(issuer.TrimEnd('/'), identityServerIssuer, StringComparison.OrdinalIgnoreCase))
+            if (identityServerIssuer is not null
+                && string.Equals(issuer.TrimEnd('/'), identityServerIssuer, StringComparison.OrdinalIgnoreCase))
             {
                 return IdentityServerScheme;
             }

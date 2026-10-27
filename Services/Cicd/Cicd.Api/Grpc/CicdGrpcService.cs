@@ -71,5 +71,7 @@ public sealed class CicdGrpcService(IBuildRunService buildRuns) : CicdService.Ci
         return reply;
     }
 
-    private static Timestamp ToTimestamp(DateTime utc) => Timestamp.FromDateTime(DateTime.SpecifyKind(utc, DateTimeKind.Utc));
+    private static Timestamp ToTimestamp(DateTime utc) => Timestamp.FromDateTime(
+        DateTime.SpecifyKind(utc, DateTimeKind.Utc)
+    );
 }

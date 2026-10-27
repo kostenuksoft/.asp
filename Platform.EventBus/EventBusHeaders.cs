@@ -32,7 +32,12 @@ public static class EventBusHeaders
             long number => (int)number,
             byte number => number,
             short number => number,
-            byte[] bytes when int.TryParse(Encoding.UTF8.GetString(bytes), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) => parsed,
+            byte[] bytes when int.TryParse(
+                Encoding.UTF8.GetString(bytes),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int parsed
+            ) => parsed,
             _ => defaultValue,
         }
         : defaultValue;

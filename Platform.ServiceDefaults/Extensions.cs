@@ -94,7 +94,9 @@ public static class Extensions
                 .AddSource(builder.Environment.ApplicationName)
                 .AddSource(MongoDbActivitySource)
                 .AddSource("Platform.Messaging")
-                .AddAspNetCoreInstrumentation(options => options.Filter = context => !IsHealthRequest(context.Request.Path))
+                .AddAspNetCoreInstrumentation(options =>
+                    options.Filter = context => !IsHealthRequest(context.Request.Path)
+                )
                 .AddHttpClientInstrumentation()
                 .AddSqlClientInstrumentation()
             );

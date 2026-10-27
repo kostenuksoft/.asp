@@ -71,7 +71,10 @@ return await Deployment.RunAsync(() =>
             "swagger",
             "Swagger UI",
             realm.Id,
-            ["https://localhost:7178/swagger/oauth2-redirect.html", "https://localhost:7179/swagger/oauth2-redirect.html"],
+            [
+                "https://localhost:7178/swagger/oauth2-redirect.html",
+                "https://localhost:7179/swagger/oauth2-redirect.html",
+            ],
             ["https://localhost:7178", "https://localhost:7179"],
             options
         )
@@ -83,28 +86,44 @@ return await Deployment.RunAsync(() =>
     foreach (string permission in PermissionMatrix.AggregatorPermissions)
     {
         ResourceServer owner = resourceServers.Single(server => server.PermissionRoles.ContainsKey(permission));
+        CustomResourceOptions afterRole = CustomResourceOptions.Merge(
+            options,
+            new CustomResourceOptions { DependsOn = { owner.PermissionRoles[permission] } }
+        );
         _ = new ClientServiceAccountRole($"aggregator-{permission}", new ClientServiceAccountRoleArgs
         {
             RealmId = realm.Id,
             ServiceAccountUserId = aggregator.ServiceAccountUserId,
             ClientId = owner.Client.Id,
             Role = permission,
-        }, CustomResourceOptions.Merge(options, new CustomResourceOptions { DependsOn = { owner.PermissionRoles[permission] } }));
+        }, afterRole);
     }
 
-    IReadOnlyList<string> users = TestUsers.Create(realm.Id, realmRoles, config.RequireSecret("testUserPassword"), options);
+    IReadOnlyList<string> users = TestUsers.Create(
+        realm.Id,
+        realmRoles,
+        config.RequireSecret("testUserPassword"),
+        options
+    );
 
     return new Dictionary<string, object?>
     {
         ["RealmUrl"] = $"{keycloakUrl}/realms/{RealmName}",
         ["AdminConsoleUrl"] = $"{keycloakUrl}/admin/master/console/#/{RealmName}",
-        ["ClientIds"] = PermissionMatrix.ResourceServers.Select(spec => spec.ClientId).Prepend("aggregator").Prepend("swagger").Prepend("postman").ToList(),
-        ["ClientSecrets"] = Output.CreateSecret(Output.Tuple(postman.ClientSecret, aggregator.ClientSecret).Apply(secrets =>
-            new Dictionary<string, string>
-            {
-                ["postman"] = secrets.Item1,
-                ["aggregator"] = secrets.Item2,
-            })),
+        ["ClientIds"] = PermissionMatrix.ResourceServers
+            .Select(spec => spec.ClientId)
+            .Prepend("aggregator")
+            .Prepend("swagger")
+            .Prepend("postman")
+            .ToList(),
+        ["ClientSecrets"] = Output.CreateSecret(
+            Output.Tuple(postman.ClientSecret, aggregator.ClientSecret).Apply(secrets =>
+                new Dictionary<string, string>
+                {
+                    ["postman"] = secrets.Item1,
+                    ["aggregator"] = secrets.Item2,
+                })
+        ),
         ["Users"] = users,
         ["SwaggerClientId"] = swagger.ClientId,
     };

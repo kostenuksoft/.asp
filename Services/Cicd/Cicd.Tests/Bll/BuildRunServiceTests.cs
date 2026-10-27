@@ -30,7 +30,11 @@ public sealed class BuildRunServiceTests
         BuildRunService service = new(uow, s_mapper, NullLogger<BuildRunService>.Instance);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            service.CompleteAsync(999_999_999, NewCompletion("1111111111111111111111111111111111111111111111111111111111111111"), Token)
+            service.CompleteAsync(
+                999_999_999,
+                NewCompletion("1111111111111111111111111111111111111111111111111111111111111111"),
+                Token
+            )
         );
     }
 
@@ -101,14 +105,16 @@ public sealed class BuildRunServiceTests
     private static async Task<BuildRun> ReadRunAsync(long runId)
     {
         await using UnitOfWork uow = new(TestDatabase.ConnectionString);
-        return await uow.BuildRuns.GetByIdAsync(runId, Token) ?? throw new InvalidOperationException("Probe run vanished.");
+        return await uow.BuildRuns.GetByIdAsync(runId, Token)
+            ?? throw new InvalidOperationException("Probe run vanished.");
     }
 
     private static async Task<int> CountHistoryAsync(long runId)
     {
         await using SqlConnection connection = new(TestDatabase.ConnectionString);
         await connection.OpenAsync(Token);
-        await using SqlCommand command = new("SELECT COUNT(*) FROM cicd.RunStatusHistory WHERE BuildRunId = @BuildRunId;", connection);
+        const string Sql = "SELECT COUNT(*) FROM cicd.RunStatusHistory WHERE BuildRunId = @BuildRunId;";
+        await using SqlCommand command = new(Sql, connection);
         command.Parameters.Add("@BuildRunId", System.Data.SqlDbType.BigInt).Value = runId;
         return (int)(await command.ExecuteScalarAsync(Token) ?? 0);
     }

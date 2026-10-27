@@ -17,7 +17,10 @@ public sealed class SecretsController(
     [HttpGet]
     [RequirePermission(Permissions.Read)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public ActionResult<IReadOnlyList<PipelineSecretDto>> GetAll() => Ok(store.GetAll().Select(PipelineSecretDto.From).ToList());
+    public ActionResult<IReadOnlyList<PipelineSecretDto>> GetAll() => Ok(store
+        .GetAll()
+        .Select(PipelineSecretDto.From)
+        .ToList());
 
     [HttpPost("rotate")]
     [RequirePermission(Permissions.Rotate)]
@@ -33,7 +36,12 @@ public sealed class SecretsController(
             return NotFound();
         }
 
-        logger.LogInformation("Secret {SecretName} rotated to version {Version} by {User}", secret.Name, secret.Version, User.Identity?.Name);
+        logger.LogInformation(
+            "Secret {SecretName} rotated to version {Version} by {User}",
+            secret.Name,
+            secret.Version,
+            User.Identity?.Name
+        );
         return Ok(PipelineSecretDto.From(secret));
     }
 

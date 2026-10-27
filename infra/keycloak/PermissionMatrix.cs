@@ -28,7 +28,8 @@ public static class PermissionMatrix
             ["registry:read", "registry:create", "registry:update", "registry:delete", "registry:publish"],
             new Dictionary<string, IReadOnlyList<string>>
             {
-                [Admin] = ["registry:read", "registry:create", "registry:update", "registry:delete", "registry:publish"],
+                [Admin] =
+                    ["registry:read", "registry:create", "registry:update", "registry:delete", "registry:publish"],
                 [Manager] = ["registry:read", "registry:update", "registry:publish"],
                 [User] = ["registry:read"],
                 [Guest] = ["registry:read"],
@@ -45,7 +46,8 @@ public static class PermissionMatrix
         ),
     ];
 
-    public static IReadOnlyList<string> Audiences { get; } = ["cicd-api", "registry-api", "telemetry-api", "secrets-api"];
+    public static IReadOnlyList<string> Audiences { get; } =
+        ["cicd-api", "registry-api", "telemetry-api", "secrets-api"];
 
     public static IReadOnlyList<string> AggregatorPermissions { get; } = ["cicd:read", "registry:read"];
 }

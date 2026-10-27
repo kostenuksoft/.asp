@@ -152,7 +152,9 @@ public sealed class Package : AuditableEntity
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length < 2 || !name.All(IsNameCharacter))
         {
-            throw new DomainException("Package name must have at least 2 characters: letters, digits, dot, underscore or hyphen.");
+            throw new DomainException(
+                "Package name must have at least 2 characters: letters, digits, dot, underscore or hyphen."
+            );
         }
     }
 

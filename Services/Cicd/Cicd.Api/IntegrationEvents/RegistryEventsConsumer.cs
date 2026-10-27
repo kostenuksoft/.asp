@@ -12,7 +12,11 @@ public sealed class RegistryEventsConsumer(
 )
     : RabbitMqConsumer(connection, scopeFactory, logger)
 {
-    protected override EventSubscription Subscription { get; } = new("registry-events", "cicd.registry-sync", ["package.*"]);
+    protected override EventSubscription Subscription { get; } = new(
+        "registry-events",
+        "cicd.registry-sync",
+        ["package.*"]
+    );
 
     protected override IReadOnlyDictionary<string, Type> EventTypes { get; } = new Dictionary<string, Type>
     {

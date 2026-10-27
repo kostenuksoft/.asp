@@ -5,7 +5,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class ArtifactRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public sealed class ArtifactRepository(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
     : BaseDapperRepository<Artifact>(connection, currentTransaction, "cicd.Artifact", "ArtifactId"), IArtifactRepository
 {
     protected override string InsertSql =>

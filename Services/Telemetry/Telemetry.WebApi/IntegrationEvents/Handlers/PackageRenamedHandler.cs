@@ -5,7 +5,10 @@ using Telemetry.WebApi.IntegrationEvents.Events;
 
 namespace Telemetry.WebApi.IntegrationEvents.Handlers;
 
-public sealed class PackageRenamedHandler(ISender sender, ILogger<PackageRenamedHandler> logger)
+public sealed class PackageRenamedHandler(
+    ISender sender,
+    ILogger<PackageRenamedHandler> logger
+)
     : IIntegrationEventHandler<PackageRenamedEvent>
 {
     public async Task HandleAsync(

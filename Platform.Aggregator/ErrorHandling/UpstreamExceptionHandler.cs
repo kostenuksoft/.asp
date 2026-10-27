@@ -4,7 +4,10 @@ using Platform.Aggregator.Services;
 
 namespace Platform.Aggregator.ErrorHandling;
 
-public sealed class UpstreamExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<UpstreamExceptionHandler> logger)
+public sealed class UpstreamExceptionHandler(
+    IProblemDetailsService problemDetailsService,
+    ILogger<UpstreamExceptionHandler> logger
+)
     : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
@@ -20,7 +23,12 @@ public sealed class UpstreamExceptionHandler(IProblemDetailsService problemDetai
         int status = unavailable ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status500InternalServerError;
         if (!unavailable)
         {
-            logger.LogError(exception, "Unhandled exception for {Method} {Path}", httpContext.Request.Method, httpContext.Request.Path);
+            logger.LogError(
+                exception,
+                "Unhandled exception for {Method} {Path}",
+                httpContext.Request.Method,
+                httpContext.Request.Path
+            );
         }
 
         httpContext.Response.StatusCode = status;

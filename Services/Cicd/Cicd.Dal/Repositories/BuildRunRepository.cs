@@ -6,7 +6,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class BuildRunRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public sealed class BuildRunRepository(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
     : BaseDapperRepository<BuildRun>(connection, currentTransaction, "cicd.BuildRun", "BuildRunId"), IBuildRunRepository
 {
     private const string RunWithDetailAndStepsSql =

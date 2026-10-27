@@ -6,7 +6,10 @@ using Microsoft.Data.SqlClient;
 
 namespace Cicd.Dal.Repositories;
 
-public sealed class PackageRepository(SqlConnection connection, Func<SqlTransaction?> currentTransaction)
+public sealed class PackageRepository(
+    SqlConnection connection,
+    Func<SqlTransaction?> currentTransaction
+)
     : RepositoryBase(connection, currentTransaction), IPackageRepository
 {
     private const string UpsertSql =
@@ -52,7 +55,9 @@ public sealed class PackageRepository(SqlConnection connection, Func<SqlTransact
         });
         parameters.Add("SourceChangedAt", package.SourceChangedAt, DbType.DateTime2);
 
-        int applied = await TranslateErrorsAsync(() => Connection.ExecuteScalarAsync<int>(Command(UpsertSql, parameters, cancellationToken)));
+        int applied = await TranslateErrorsAsync(() =>
+            Connection.ExecuteScalarAsync<int>(Command(UpsertSql, parameters, cancellationToken))
+        );
         return applied == 1;
     }
 }

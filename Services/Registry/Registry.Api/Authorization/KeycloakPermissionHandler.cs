@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Registry.Api.Authorization;
 
-public sealed class KeycloakPermissionHandler(ILogger<KeycloakPermissionHandler> logger) : AuthorizationHandler<PermissionRequirement>
+public sealed class KeycloakPermissionHandler(ILogger<KeycloakPermissionHandler> logger)
+    : AuthorizationHandler<PermissionRequirement>
 {
     private const string PermissionsClaim = "permissions";
     private const string AuthorizationClaim = "authorization";
@@ -48,7 +49,12 @@ public sealed class KeycloakPermissionHandler(ILogger<KeycloakPermissionHandler>
         }
         catch (JsonException exception)
         {
-            logger.LogWarning(exception, "Malformed {Claim} claim; permission {Permission} not granted", AuthorizationClaim, permission);
+            logger.LogWarning(
+                exception,
+                "Malformed {Claim} claim; permission {Permission} not granted",
+                AuthorizationClaim,
+                permission
+            );
             return false;
         }
     }

@@ -7,7 +7,11 @@ using Cicd.Domain.Models;
 
 namespace Cicd.Bll.Services;
 
-public sealed class AgentService(IUnitOfWork unitOfWork, IMapper mapper) : IAgentService
+public sealed class AgentService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper
+)
+    : IAgentService
 {
     private static readonly HashSet<string> s_statuses =
         [AgentStatus.Idle, AgentStatus.Leased, AgentStatus.Offline, AgentStatus.Draining];
