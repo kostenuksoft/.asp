@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+data:
+  ASPNETCORE_ENVIRONMENT: "Staging"
+  services__registry-api__http__0: "http://registry-api"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-config
+data:
+  ASPNETCORE_ENVIRONMENT: "Staging"
