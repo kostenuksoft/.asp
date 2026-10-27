@@ -16,7 +16,9 @@ public sealed class PipelineSecretStore(TimeProvider timeProvider)
         StringComparer.OrdinalIgnoreCase
     );
 
-    public IReadOnlyList<PipelineSecret> GetAll() => _secrets.Values.OrderBy(secret => secret.Name, StringComparer.Ordinal).ToList();
+    public IReadOnlyList<PipelineSecret> GetAll() => _secrets.Values
+        .OrderBy(secret => secret.Name, StringComparer.Ordinal)
+        .ToList();
 
     public PipelineSecret? Find(string name) => _secrets.TryGetValue(name, out PipelineSecret? secret) ? secret : null;
 

@@ -108,6 +108,7 @@ public sealed class BuildRunService(IUnitOfWork unitOfWork, IMapper mapper, ILog
         }
 
         long? agentId = await unitOfWork.Agents.LeaseAsync(buildRunId, input.OperatingSystem, input.LeasedBy, cancellationToken);
+
         if (agentId is null)
         {
             throw new BusinessConflictException($"No idle {input.OperatingSystem} agent is available.");

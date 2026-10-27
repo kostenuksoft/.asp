@@ -54,12 +54,12 @@ return await Deployment.RunAsync(() =>
     }
 
     ClientScope platformScope = new ClientScope("devhub-apis", new ClientScopeArgs
-        {
-            RealmId = realm.Id,
-            Name = "devhub-apis",
-            Description = "Audiences of the DevHub APIs and the permissions claim",
-            IncludeInTokenScope = true,
-        }, options)
+    {
+        RealmId = realm.Id,
+        Name = "devhub-apis",
+        Description = "Audiences of the DevHub APIs and the permissions claim",
+        IncludeInTokenScope = true
+    }, options)
         .WithAudiences(realm.Id, PermissionMatrix.Audiences, options)
         .WithPermissionsMapper(realm.Id, options);
 
